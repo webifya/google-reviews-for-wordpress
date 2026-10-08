@@ -99,14 +99,14 @@ final class Places {
         update_option('grw_places_validation_'.$id,['validated_at'=>current_time('mysql',true),'has_reviews'=>(bool)$rows],false);
         return ['reviews'=>$rows,'identity'=>$result];
     }
-    public static function token(int $id): string { return wp_hash('grw-live-widget:'.$id.':'.get_option(self::OPTION,'')); }
+    public static function token(int $id,bool $preview=false): string { return wp_hash('grw-live-widget:'.$id.':'.(int)$preview.':'.get_option(self::OPTION,'')); }
     public static function public_widget(\WP_REST_Request $request) {
-        $id=absint($request->get_param('id')); $token=$request->get_param('token');
-        if (!is_string($token) || !hash_equals(self::token($id),$token) || !Widgets::get($id)) { return new \WP_Error('places_widget','Widget access denied.',['status'=>403]); }
+        $id=absint($request->get_param('id')); $preview=is_scalar($request->get_param('admin_preview'))&&filter_var($request->get_param('admin_preview'),FILTER_VALIDATE_BOOLEAN); $token=$request->get_param('token');
+        if (!is_string($token) || !hash_equals(self::token($id,$preview),$token) || !Widgets::get($id)) { return new \WP_Error('places_widget','Widget access denied.',['status'=>403]); }
         $w=Widgets::get($id); $c=Widgets::sanitize(json_decode($w['config'],true)?:[]);
         if (!$c['active']) { return new \WP_REST_Response(['html'=>''],200,['Cache-Control'=>'no-store, private, max-age=0']); }
         if (is_scalar($request->get_param('limit')) && absint($request->get_param('limit'))) { $c['limit']=min($c['limit'],absint($request->get_param('limit'))); }
-        $response=new \WP_REST_Response(['html'=>Renderer::render($id,$c,false,true)],200,['Cache-Control'=>'no-store, private, max-age=0','Pragma'=>'no-cache']);
+        $response=new \WP_REST_Response(['html'=>Renderer::render($id,$c,$preview,true)],200,['Cache-Control'=>'no-store, private, max-age=0','Pragma'=>'no-cache']);
         return $response;
     }
 }
