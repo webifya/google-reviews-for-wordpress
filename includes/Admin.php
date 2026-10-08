@@ -45,7 +45,7 @@ final class Admin {
                 if (!empty($in['embed_url']) && !$embed) { return Security::error('Use the official Google Maps Share → Embed a map iframe or its HTTPS src URL.'); }
                 $data=['embed_url'=>$embed,'business_name'=>sanitize_text_field($in['business_name']??''),'address'=>sanitize_text_field($in['address']??''),'maps_url'=>Security::maps($in['maps_url']??''),'reviews_url'=>Security::maps($in['reviews_url']??'')];
                 $id=absint($in['id']??0); $rows=$id?Reviews::query(['locations'=>[$id]],1,20):[];
-                return ['embed_url'=>$embed,'map_html'=>MapDisplay::preview($data,$data['business_name']), 'reviews_html'=>$rows?Renderer::render(0,['locations'=>[$id],'show_map'=>false],true):'', 'review_count'=>count($rows),'css'=>plugins_url('assets/frontend.css',GRW_FILE).'?ver='.GRW_VERSION,'js'=>plugins_url('assets/frontend.js',GRW_FILE).'?ver='.GRW_VERSION];
+                return ['embed_url'=>$embed,'map_html'=>MapDisplay::preview($data,$data['business_name']), 'reviews_html'=>$rows?Renderer::render(0,['locations'=>[$id],'show_map'=>false],true):'', 'review_count'=>count($rows),'saved_count'=>$id?(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}grw_reviews WHERE location_id=%d",$id)):0,'css'=>plugins_url('assets/frontend.css',GRW_FILE).'?ver='.GRW_VERSION,'js'=>plugins_url('assets/frontend.js',GRW_FILE).'?ver='.GRW_VERSION];
             case 'location':
                 if (($in['action']??'')==='delete') {
                     $id=absint($in['id']??0); if (!Locations::get($id)) { return Security::error('Location not found'); }

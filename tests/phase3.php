@@ -2,7 +2,7 @@
 /** Public listing and map regressions. Only synthetic fixture data is used. */
 require rtrim(getenv('GRW_WP_ROOT'),'/').'/wp-load.php';
 if (!class_exists('Webifya\\GRW\\Plugin')) { require_once ABSPATH.'wp-content/plugins/google-reviews-for-wordpress/google-reviews-for-wordpress.php'; Webifya\GRW\Plugin::boot(); }
-use Webifya\GRW\{Locations,Security,Widgets,MapDisplay,Renderer,Admin,GoogleBusiness};
+use Webifya\GRW\{Locations,Reviews,Security,Widgets,MapDisplay,Renderer,Admin,GoogleBusiness};
 wp_set_current_user(1);$assertions=0;
 function verify3($ok,$label){global $assertions;if(!$ok){throw new RuntimeException($label);}echo "PASS: $label\n";$assertions++;}
 $src='https://www.google.com/maps/embed?pb=!1m2!1sfixture';
@@ -30,6 +30,9 @@ verify3(str_contains(do_shortcode('[google_reviews_combined id="'.$widget.'"]'),
 verify3(Widgets::sanitize(['show_map'=>true,'map_height'=>1])['map_height']===200,'map widget settings sanitized');
 $r=new WP_REST_Request('POST');$r->set_header('Content-Type','application/json');$r->set_body(wp_json_encode(['id'=>$location,'embed_url'=>$html,'business_name'=>'Non-owned fixture']));$preview=Admin::handle('listing_preview',$r);
 verify3($preview['review_count']===0&&$preview['reviews_html']===''&&str_contains($preview['map_html'],'iframe'),'separate actual review preview remains empty');
+Reviews::import([['external_id'=>'hidden-preview-fixture','reviewer'=>'Synthetic hidden fixture','content'=>'Authorized fixture only.','rating'=>5]],$location);
+$hidden=(int)$wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}grw_reviews WHERE location_id=%d",$location));Reviews::moderate($hidden,'hide');$hiddenPreview=Admin::handle('listing_preview',$r);
+verify3($hiddenPreview['saved_count']===1&&$hiddenPreview['review_count']===0,'preview distinguishes hidden saved data from absent imports');Reviews::moderate($hidden,'delete');
 Locations::save(['id'=>$location,'business_name'=>'Updated public fixture']);$after=json_decode(Locations::get($location)['data'],true);
 verify3($after['embed_url']===$src&&$after['maps_url']===$d['maps_url']&&$after['reviews_url']===$d['reviews_url'],'partial update preserves embeds and links');
 $feed=Locations::save(['name'=>'Feed fixture','provider'=>'local_json','active'=>true,'authorized'=>true,'attachment_id'=>1,'frequency'=>86400]);
