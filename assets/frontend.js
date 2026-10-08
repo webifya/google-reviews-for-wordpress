@@ -14,6 +14,8 @@ function initialize(root){
  const observer=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting&&entries[0].intersectionRatio>=.3;clearTimeout(visibilityTimer);if(visible)visibilityTimer=setTimeout(impression,1000)},{threshold:[0,.3]});observer.observe(root);
  window.addEventListener('grw:consent',e=>{consent=e.detail===true;if(consent&&visible)impression();if(!consent)queue=[]});
  window.addEventListener('pagehide',flush);
+ const refreshReadMore=()=>root.querySelectorAll('.grw-more').forEach(b=>{const t=b.parentElement.querySelector('.grw-content');if(b.getAttribute('aria-expanded')!=='true')b.hidden=t.dataset.full===t.dataset.short&&t.scrollHeight<=t.clientHeight+1});
+ new ResizeObserver(refreshReadMore).observe(root);refreshReadMore();
  root.querySelectorAll('img').forEach(img=>img.addEventListener('error',()=>img.remove()));
  root.addEventListener('click',e=>{
   const more=e.target.closest('.grw-more'); if(more){event('readmore');event('interaction');const text=more.parentElement.querySelector('.grw-content');
