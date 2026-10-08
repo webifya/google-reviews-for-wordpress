@@ -22,6 +22,7 @@ final class Locations {
         if ($data['cid'] && !preg_match('/^\d{1,24}$/',$data['cid'])) { return Security::error(__('CID must be numeric.', 'google-reviews-for-wordpress')); }
         if ($data['place_id'] && !preg_match('/^[A-Za-z0-9_-]{5,200}$/', $data['place_id'])) { return Security::error(__('Invalid Place ID.', 'google-reviews-for-wordpress')); }
         foreach (['website','logo'] as $key) { $data[$key] = Security::url($input[$key]??''); }
+        if ($provider==='google_places' && !$data['place_id']) { return Security::error('Google Places requires a Place ID.'); }
         $data['attachment_id'] = absint($input['attachment_id']??0);
         $data['authorized'] = !empty($input['authorized']);
         if ($provider==='local_json' && (!$data['authorized'] || !$data['attachment_id'])) { return Security::error(__('Select a JSON media attachment and confirm redistribution rights.', 'google-reviews-for-wordpress')); }
@@ -40,11 +41,13 @@ final class Locations {
         $data['map_status']=$data['embed_url']?'configured':'not_configured';
         $data['review_source_status']=$adapter->supports_sync()?'configured':($provider==='public'||$provider==='embed'?'unavailable':'manual_import');
         $status = $adapter->supports_sync() ? 'action_required' : ($provider === 'embed' ? 'unsupported_source' : 'manual_import_only');
-        $row=['name'=>$name,'active'=>$data['active']?1:0,'data'=>wp_json_encode($data),'status'=>$status,'next_sync'=>$adapter->supports_sync() && $data['active'] && $data['frequency'] ? time()+$data['frequency']:0];
+        $can_schedule=$adapter->supports_sync() && $provider!=='google_business';
+        $row=['name'=>$name,'active'=>$data['active']?1:0,'data'=>wp_json_encode($data),'status'=>$status,'next_sync'=>$can_schedule && $data['active'] && $data['frequency'] ? time()+$data['frequency']:0];
         if ($unchanged || ($old && array_intersect_key($previous,array_flip(['provider','active','frequency','attachment_id','authorized','google_parent']))===array_intersect_key($data,array_flip(['provider','active','frequency','attachment_id','authorized','google_parent'])))) { $row['status']=$old['status']; $row['next_sync']=$old['next_sync']; }
         if ($old && array_intersect_key($previous,array_flip(['provider','attachment_id','google_parent']))!==array_intersect_key($data,array_flip(['provider','attachment_id','google_parent']))) { delete_option('grw_cursor_'.$id); }
         $ok = $id ? $wpdb->update($wpdb->prefix.'grw_locations',$row,['id'=>$id]) : $wpdb->insert($wpdb->prefix.'grw_locations',$row);
          $saved_id=$id ?: (int)$wpdb->insert_id;
+        if ($old && (($previous['place_id']??'')!==$data['place_id'] || ($previous['provider']??'')!==$provider)) { delete_option('grw_places_validation_'.$id); }
         Cache::invalidate();
         return $ok === false ? Security::error(__('Could not save location.', 'google-reviews-for-wordpress'),500) :  $saved_id;
     }

@@ -3,7 +3,7 @@ namespace Webifya\GRW;
 if (!defined('ABSPATH')) { exit; }
 final class Widgets {
     public static function defaults(): array { return [
-        'custom_class'=>'','full_width'=>false,'preset'=>'classic','source'=>'','template'=>'classic','locations'=>[],'selected'=>[],'sort'=>'latest','minimum'=>0,'limit'=>100,
+        'empty_mode'=>'hide','empty_message'=>'Customer reviews are currently unavailable.','custom_class'=>'','full_width'=>false,'preset'=>'classic','source'=>'connected','template'=>'classic','locations'=>[],'selected'=>[],'sort'=>'latest','minimum'=>0,'limit'=>100,
         'heading'=>'CLIENT REVIEWS','subtitle'=>'What Our Clients Say...','desktop'=>3,'tablet'=>2,'mobile'=>1,
         'autoplay'=>true,'interval'=>5000,'duration'=>500,'loop'=>true,'pause_hover'=>true,'pause_interaction'=>true,'peek'=>false,'swipe'=>true,'mouse_drag'=>true,'swipe_sensitivity'=>45,'random_start'=>false,
         'active'=>true,'show_text'=>true,'show_heading'=>true,'show_subtitle'=>true,'show_avatar'=>true,'show_name'=>true,'show_date'=>true,'show_stars'=>true,'show_readmore'=>true,'show_arrows'=>true,'show_dots'=>false,'show_summary'=>false,'show_map'=>false,'map_height'=>380,'show_maps'=>false,'analytics'=>true,
@@ -32,7 +32,7 @@ final class Widgets {
             elseif (str_starts_with($v,'#')) { $out[$k]=sanitize_hex_color($in[$k]) ?: $v; }
             else { $out[$k]=sanitize_text_field($in[$k]); }
         }
-        $enums=['source'=>['','import','manual','adapter'],'preset'=>['classic','minimal','dark','navy','gold'],'template'=>['classic','minimal','dark','grid','compact','embed'],'sort'=>['latest','oldest','highest','lowest','random','manual','featured'],'expansion'=>['inline','modal','full'],'summary_position'=>['above','left','card'],'heading_align'=>['left','center','right'],'text_align'=>['left','center','right']];
+        $enums=['empty_mode'=>['hide','message'],'source'=>['connected','licensed','','import','manual','adapter'],'preset'=>['classic','minimal','dark','navy','gold'],'template'=>['classic','minimal','dark','grid','compact','embed'],'sort'=>['latest','oldest','highest','lowest','random','manual','featured'],'expansion'=>['inline','modal','full'],'summary_position'=>['above','left','card'],'heading_align'=>['left','center','right'],'text_align'=>['left','center','right']];
         foreach ($enums as $k=>$values) { if (!in_array($out[$k],$values,true)) { $out[$k]=self::defaults()[$k]; } }
         $ranges=['map_height'=>[200,800],'swipe_sensitivity'=>[10,150],'minimum'=>[0,5],'limit'=>[1,10000],'desktop'=>[1,6],'tablet'=>[1,4],'mobile'=>[1,2],'interval'=>[2000,60000],'duration'=>[0,2000],'max_chars'=>[0,10000],'max_lines'=>[1,50],'heading_size'=>[12,120],'subtitle_size'=>[10,60],'name_size'=>[10,50],'text_size'=>[10,50],'date_size'=>[10,40],'font_weight'=>[100,900],'line_height'=>[1,3],'letter_spacing'=>[-2,10],'summary_width'=>[120,700],'width'=>[280,2400],'padding'=>[0,200],'card_padding'=>[8,100],'gap'=>[4,100],'radius'=>[0,100],'border_width'=>[0,10],'avatar'=>[24,150],'min_height'=>[150,1000]];
         foreach ($ranges as $k=>[$min,$max]) { $out[$k]=max($min,min($max,$out[$k])); }
@@ -47,7 +47,7 @@ final class Widgets {
         global $wpdb; $id=absint($in['id']??0); if ($id && !self::get($id)) { return Security::error('Widget not found',404); }
         if (!is_array($in['config']??[])) { return Security::error('Widget config must be an object'); }
         $name=sanitize_text_field($in['name']??''); if (!$name) { return Security::error('Widget name is required'); }
-        $config=self::sanitize($in['config']??[]); $row=['name'=>$name,'config'=>wp_json_encode($config)];
+        $config=self::sanitize($in['config']??[]); if ($config['template']!=='embed') { $selected=$config['locations']?:array_column(Locations::all(),'id'); $live=0; foreach ($selected as $locid) { $loc=Locations::get((int)$locid); $data=$loc?json_decode($loc['data'],true):[]; if (!empty($data['active'])&&($data['provider']??'')==='google_places') { $live++; } } if ($live>5) { return Security::error('Select at most five Google Places businesses per live widget. Create additional widgets for other locations.'); } } $row=['name'=>$name,'config'=>wp_json_encode($config)];
         $ok=$id?$wpdb->update($wpdb->prefix.'grw_widgets',$row,['id'=>$id]):$wpdb->insert($wpdb->prefix.'grw_widgets',$row);
         return $ok===false?Security::error('Could not save widget',500):($id ?: (int)$wpdb->insert_id);
     }

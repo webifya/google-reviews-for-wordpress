@@ -4,36 +4,44 @@ if (!defined('ABSPATH')) { exit; }
 final class Admin {
     public static function menu(): void {
         add_menu_page(__('Google Reviews','google-reviews-for-wordpress'),__('Google Reviews','google-reviews-for-wordpress'),'manage_options','grw',[self::class,'page'],'dashicons-star-filled',58);
-        foreach (['dashboard'=>'Dashboard','locations'=>'Locations','reviews'=>'All Reviews','widgets'=>'Review Widgets','analytics'=>'Analytics','sync'=>'Synchronization','settings'=>'Settings','integrations'=>'Location Connections','tools'=>'Tools & Diagnostics'] as $slug=>$title) { add_submenu_page('grw',__($title,'google-reviews-for-wordpress'),__($title,'google-reviews-for-wordpress'),'manage_options',$slug==='dashboard'?'grw':'grw-'.$slug,[self::class,'page']); }
+        foreach (['dashboard'=>'Dashboard','locations'=>'Locations','reviews'=>'Reviews','widgets'=>'Widgets','analytics'=>'Analytics','settings'=>'Settings'] as $slug=>$title) { add_submenu_page('grw',__($title,'google-reviews-for-wordpress'),__($title,'google-reviews-for-wordpress'),'manage_options',$slug==='dashboard'?'grw':'grw-'.$slug,[self::class,'page']); }
     }
+    public static function secondary_menu(): void { foreach (['sync','integrations','tools'] as $slug) { add_submenu_page(null,'Google Reviews settings','Google Reviews settings','manage_options','grw-'.$slug,[self::class,'page']); } }
     public static function assets(string $hook): void {
         if (!str_contains($hook,'grw')) { return; }
         wp_enqueue_style('grw-admin',plugins_url('assets/admin.css',GRW_FILE),[],GRW_VERSION);
         Renderer::assets();
         wp_enqueue_script('grw-admin',plugins_url('assets/admin.js',GRW_FILE),['wp-i18n'],GRW_VERSION,true);
         wp_set_script_translations('grw-admin','google-reviews-for-wordpress',dirname(GRW_FILE).'/languages');
-        wp_localize_script('grw-admin','GRW_ADMIN',['endpoint'=>rest_url('grw/v1/'),'nonce'=>wp_create_nonce('wp_rest'),'user'=>get_current_user_id(),'page'=>sanitize_key($_GET['page']??'grw'),'defaults'=>Widgets::defaults(),'presets'=>Widgets::presets(),'providers'=>array_map(fn($p)=>['label'=>$p->label(),'sync'=>$p->supports_sync()],Sources::all()),'strings'=>['save'=>__('Save','google-reviews-for-wordpress'),'error'=>__('Request failed','google-reviews-for-wordpress')]]);
+        wp_localize_script('grw-admin','GRW_ADMIN',['endpoint'=>rest_url('grw/v1/'),'nonce'=>wp_create_nonce('wp_rest'),'user'=>get_current_user_id(),'page'=>sanitize_key($_GET['page']??'grw'),'defaults'=>Widgets::defaults(),'presets'=>Widgets::presets(),'providers'=>Sources::catalog(),'strings'=>['save'=>__('Save','google-reviews-for-wordpress'),'error'=>__('Request failed','google-reviews-for-wordpress')]]);
     }
     public static function page(): void { if (!Security::can()) { return; } echo '<div class="wrap grw-admin"><h1>'.esc_html__('Google Reviews','google-reviews-for-wordpress').'</h1><div id="grw-admin-app"></div><noscript>'.esc_html__('Enable JavaScript to use the visual editor.','google-reviews-for-wordpress').'</noscript></div>'; }
     public static function settings(array $s): array { return ['analytics'=>filter_var(is_scalar($s['analytics']??null)?$s['analytics']:false,FILTER_VALIDATE_BOOLEAN),'consent_required'=>filter_var(is_scalar($s['consent_required']??null)?$s['consent_required']:false,FILTER_VALIDATE_BOOLEAN),'delete_data'=>filter_var(is_scalar($s['delete_data']??null)?$s['delete_data']:false,FILTER_VALIDATE_BOOLEAN),'retention'=>max(1,min(730,absint(is_scalar($s['retention']??null)?$s['retention']:90)))]; }
     public static function routes(): void {
-        foreach (['state','listing_preview','location','widget','preview','import','moderate','manual','sync','google','bulk','settings','tools','export'] as $action) {
+        foreach (['state','listing_preview','location','widget','preview','import','moderate','manual','sync','google','places','bulk','settings','tools','export'] as $action) {
             register_rest_route('grw/v1','/'.$action,['methods'=>$action==='state'?'GET':'POST','permission_callback'=>[Security::class,'can'],'callback'=>fn($r)=>self::handle($action,$r)]);
         }
+        register_rest_route('grw/v1','/live-widget',['methods'=>'POST','permission_callback'=>'__return_true','callback'=>[Places::class,'public_widget']]);
         register_rest_route('grw/v1','/events',['methods'=>'POST','permission_callback'=>'__return_true','callback'=>[Analytics::class,'collect'],'args'=>[]]);
     }
     private static function state(\WP_REST_Request $r): array {
         global $wpdb; $settings=get_option('grw_settings',[]);
         $page=max(1,absint($r->get_param('page')??1));
         $counts=$wpdb->get_results("SELECT location_id,COUNT(*) total FROM {$wpdb->prefix}grw_reviews GROUP BY location_id",OBJECT_K);
-        $locations=Locations::all(); foreach ($locations as &$location) { $location['saved_count']=(int)($counts[$location['id']]->total??0); $location['presentation']=Locations::presentation($location); $location['listing_url']=Locations::listing_url(json_decode($location['data'],true)?:[]); } unset($location);
+        $locations=Locations::all(); foreach ($locations as &$location) { $location['review_connection']=Sources::connection($location); $location['saved_count']=(int)($counts[$location['id']]->total??0); $location['presentation']=Locations::presentation($location); $location['listing_url']=Locations::listing_url(json_decode($location['data'],true)?:[]); } unset($location);
         $filters=['admin'=>true,'search'=>sanitize_text_field($r->get_param('search')??''),'locations'=>Security::ids($r->get_param('locations')??[]),'visibility'=>sanitize_text_field($r->get_param('visibility')??''),'source'=>sanitize_key($r->get_param('source')??''),'minimum'=>absint($r->get_param('minimum')??0),'sort'=>sanitize_key($r->get_param('sort')??'latest'),'from'=>sanitize_text_field($r->get_param('from')??''),'to'=>sanitize_text_field($r->get_param('to')??'')];
-        return ['locations'=>$locations,'widgets'=>Widgets::all(),'reviews'=>Reviews::query($filters,$page,50),'review_count'=>(int)$wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}grw_reviews"),'average'=>$wpdb->get_var("SELECT AVG(rating) FROM {$wpdb->prefix}grw_reviews WHERE published=1"),'settings'=>$settings,'analytics'=>Analytics::report($r->get_param('from')?:wp_date('Y-m-d',time()-29*DAY_IN_SECONDS),$r->get_param('to')?:current_time('Y-m-d')),'logs'=>$wpdb->get_results("SELECT * FROM {$wpdb->prefix}grw_logs ORDER BY id DESC LIMIT 50",ARRAY_A),'google'=>GoogleBusiness::status(),'today'=>current_time('Y-m-d'),'diagnostics'=>['next_tick'=>wp_next_scheduled('grw_tick'),'cron_disabled'=>defined('DISABLE_WP_CRON')&&DISABLE_WP_CRON]+(($r->get_param('diagnostics'))?self::diagnostics():[]),'onboarding'=>(bool)get_option('grw_onboarding')];
+        $ids=array_map(fn($l)=>(int)$l['id'],array_filter($locations,fn($l)=>$l['review_connection']['capabilities']['storage']==='licensed_permanent'&&!empty($l['active'])));
+        $requested=Security::ids($r->get_param('locations')??[]); $view_ids=$requested?array_values(array_intersect($ids,$requested)):$ids;
+        $connected_filters=array_merge($filters,['source'=>'licensed','locations'=>$view_ids]);
+        $summary=['count'=>0,'sum'=>0];
+        if ($ids) { $sql="SELECT COUNT(*) count,COALESCE(SUM(rating),0) sum FROM {$wpdb->prefix}grw_reviews WHERE source_type='licensed' AND location_id IN (".implode(',',array_fill(0,count($ids),'%d')).")"; $summary=$wpdb->get_row($wpdb->prepare($sql,...$ids),ARRAY_A); }
+
+        return ['connected_reviews'=>$view_ids?Reviews::query($connected_filters,$page,50):[],'review_summary'=>$summary,'locations'=>$locations,'widgets'=>Widgets::all(),'reviews'=>Reviews::query($filters,$page,50),'review_count'=>(int)$wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}grw_reviews"),'average'=>$wpdb->get_var("SELECT AVG(rating) FROM {$wpdb->prefix}grw_reviews WHERE published=1"),'settings'=>$settings,'analytics'=>Analytics::report($r->get_param('from')?:wp_date('Y-m-d',time()-29*DAY_IN_SECONDS),$r->get_param('to')?:current_time('Y-m-d')),'logs'=>$wpdb->get_results("SELECT * FROM {$wpdb->prefix}grw_logs ORDER BY id DESC LIMIT 50",ARRAY_A),'places'=>Places::status(),'google'=>GoogleBusiness::status(),'today'=>current_time('Y-m-d'),'diagnostics'=>['plugin'=>GRW_VERSION,'next_tick'=>wp_next_scheduled('grw_tick'),'cron_disabled'=>defined('DISABLE_WP_CRON')&&DISABLE_WP_CRON]+(($r->get_param('diagnostics'))?self::diagnostics():[]),'onboarding'=>(bool)get_option('grw_onboarding')];
     }
     public static function diagnostics(): array {
         global $wpdb;
         $tables=[]; foreach (['locations','reviews','widgets','analytics','logs'] as $name) { $table=$wpdb->prefix.'grw_'.$name; $tables[$name]=['exists'=>$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$wpdb->esc_like($table)))===$table,'rows'=>(int)$wpdb->get_var("SELECT COUNT(*) FROM $table")]; }
-        return ['plugin'=>GRW_VERSION,'wordpress'=>get_bloginfo('version'),'php'=>PHP_VERSION,'database'=>$wpdb->db_version(),'cron_disabled'=>defined('DISABLE_WP_CRON')&&DISABLE_WP_CRON,'next_tick'=>wp_next_scheduled('grw_tick'),'tables'=>$tables,'providers'=>array_map(fn($p)=>['label'=>$p->label(),'sync'=>$p->supports_sync()],Sources::all())];
+        return ['plugin'=>GRW_VERSION,'wordpress'=>get_bloginfo('version'),'php'=>PHP_VERSION,'database'=>$wpdb->db_version(),'cron_disabled'=>defined('DISABLE_WP_CRON')&&DISABLE_WP_CRON,'next_tick'=>wp_next_scheduled('grw_tick'),'tables'=>$tables,'providers'=>Sources::catalog()];
     }
     public static function handle(string $action,\WP_REST_Request $r) {
         global $wpdb; $in=$r->get_json_params() ?: $r->get_params(); if (!is_array($in)) { return Security::error('Expected an object payload'); }
@@ -50,7 +58,7 @@ final class Admin {
                 if (($in['action']??'')==='delete') {
                     $id=absint($in['id']??0); if (!Locations::get($id)) { return Security::error('Location not found'); }
                     if ($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}grw_reviews WHERE location_id=%d",$id))) { return Security::error('Hide this location or remove/reassign its saved reviews before deletion'); }
-                    $wpdb->delete($wpdb->prefix.'grw_locations',['id'=>$id]); delete_option('grw_cursor_'.$id); Cache::invalidate(); GoogleBusiness::cleanup(true); return ['deleted'=>true];
+                    $wpdb->delete($wpdb->prefix.'grw_locations',['id'=>$id]); delete_option('grw_cursor_'.$id); delete_option('grw_places_validation_'.$id); delete_option('grw_sync_counts_'.$id); Cache::invalidate(); GoogleBusiness::cleanup(true); return ['deleted'=>true];
                 }
                 return Locations::save($in);
             case 'widget':
@@ -75,8 +83,14 @@ final class Admin {
                 $act=sanitize_key($in['action']??''); if (!in_array($act,['hide','show','feature','unfeature','delete'],true)) { return Security::error('Invalid moderation action'); }
                 return ['success'=>Reviews::moderate(absint($in['id']??0),$act)];
             case 'sync':
-                if (!empty($in['all'])) { $out=[]; foreach (Locations::all() as $l) { $d=json_decode($l['data'],true); $p=Sources::all()[$d['provider']]??null; if ($p && $p->supports_sync() && !empty($d['active'])) { $wpdb->update($wpdb->prefix.'grw_locations',['next_sync'=>time()],['id'=>$l['id']]); $out[]=$l['id']; } } return ['queued'=>$out]; }
+                if (!empty($in['all'])) { $out=[]; foreach (Locations::all() as $l) { $d=json_decode($l['data'],true); $p=Sources::all()[$d['provider']]??null; if (Sources::eligible($l)) { $wpdb->update($wpdb->prefix.'grw_locations',['next_sync'=>time()],['id'=>$l['id']]); $out[]=$l['id']; } } return ['queued'=>$out]; }
                 return Sync::run(absint($in['id']??0));
+            case 'places':
+                $pa=sanitize_key($in['action']??'status');
+                if (in_array($pa,['configure','disconnect'],true)) { return Places::configure($in); }
+                if ($pa==='lookup') { $result=Places::lookup((string)($in['input']??'')); return is_wp_error($result)?$result:new \WP_REST_Response($result,200,['Cache-Control'=>'no-store, private, max-age=0']); }
+                if ($pa==='reviews') { $result=Places::retrieve(absint($in['id']??0)); return is_wp_error($result)?$result:new \WP_REST_Response($result,200,['Cache-Control'=>'no-store, private, max-age=0']); }
+                return Places::status();
             case 'google':
                 $ga=sanitize_key($in['action']??'status');
                 if ($ga==='configure') { return GoogleBusiness::configure($in); }
@@ -101,7 +115,7 @@ final class Admin {
             case 'settings': update_option('grw_settings',self::settings($in),false); return ['saved'=>true];
             case 'tools':
                 if (($in['action']??'')==='resolve_maps') { return Security::resolve_maps(is_string($in['url']??null)?$in['url']:''); }
-                if (($in['action']??'')==='test_connection') { $loc=Locations::get(absint($in['id']??0)); if (!$loc) { return Security::error('Unknown location'); } $d=json_decode($loc['data'],true); $provider=Sources::all()[$d['provider']]??null; if (!$provider || !$provider->supports_sync()) { return Security::error('No authorized individual-review retrieval is available for this source.'); } $batch=$provider->fetch($loc,null); return is_wp_error($batch)?$batch:['success'=>true,'first_page_reviews'=>count($batch['reviews']??[])]; }
+                if (($in['action']??'')==='test_connection') { $loc=Locations::get(absint($in['id']??0)); if (!$loc) { return Security::error('Unknown location'); } $d=json_decode($loc['data'],true); $provider=Sources::all()[$d['provider']]??null; if (!$provider || !$provider->supports_sync() || $d['provider']==='google_business') { return Security::error('No authorized individual-review retrieval is available for this source.'); } $batch=$provider->fetch($loc,null); return is_wp_error($batch)?$batch:['success'=>true,'first_page_reviews'=>count($batch['reviews']??[]),'reviews'=>array_slice($batch['reviews']??[],0,5)]; }
                 elseif (($in['action']??'')==='onboarding_done') { update_option('grw_onboarding',false); }
                 elseif (($in['action']??'')==='repair') { Installer::activate(); }
                 elseif (($in['action']??'')==='import_settings') { if (!isset($in['settings']) || !is_array($in['settings'])) { return Security::error('Invalid settings'); } update_option('grw_settings',self::settings($in['settings'])); }

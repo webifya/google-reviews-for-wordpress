@@ -23,7 +23,7 @@ verify3(str_contains($map,'--map-height:350px')&&str_contains($map,'<iframe')&&s
 verify3(str_contains($map,'View on Google Maps')&&str_contains($map,'View Google Reviews'),'public listing and reviews links');
 verify3(!str_contains($map,'style="border:0;"')&&!str_contains($map,'width="600"'),'supplied iframe attributes discarded');
 verify3(str_contains(MapDisplay::render($location,999999),'--map-height:800px'),'map height bounded');
-$widget=Widgets::save(['name'=>'Phase 3 fixture','config'=>['locations'=>[$location],'show_heading'=>false,'show_subtitle'=>false]]);
+$widget=Widgets::save(['name'=>'Phase 3 fixture','config'=>['source'=>'','empty_mode'=>'message','locations'=>[$location],'show_heading'=>false,'show_subtitle'=>false]]);
 verify3(!str_contains(do_shortcode('[google_reviews_widget id="'.$widget.'"]'),'<iframe'),'old widget shortcode does not force a map');
 verify3(str_contains(do_shortcode('[google_reviews_grid id="'.$widget.'"]'),'grw-grid'),'independent grid shortcode');
 verify3(str_contains(do_shortcode('[google_reviews_combined id="'.$widget.'"]'),'<iframe'),'combined shortcode adds optional map');

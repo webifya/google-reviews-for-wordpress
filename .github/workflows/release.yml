@@ -14,13 +14,13 @@ jobs:
         with:
           php-version: '8.1'
       - run: find . -name '*.php' -print0 | xargs -0 -n1 php -l
-      - run: python3 scripts/package.py google-reviews-for-wordpress-v1.2.0.zip
+      - run: python3 scripts/package.py google-reviews-for-wordpress-v1.3.0.zip
       - uses: actions/upload-artifact@v4
         with:
           name: installable-plugin
-          path: google-reviews-for-wordpress-v1.2.0.zip
+          path: google-reviews-for-wordpress-v1.3.0.zip
       - uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           draft: true
-          files: google-reviews-for-wordpress-v1.2.0.zip
+          files: google-reviews-for-wordpress-v1.3.0.zip

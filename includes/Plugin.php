@@ -7,6 +7,7 @@ final class Plugin {
         if (get_option('grw_db_version')!==GRW_VERSION) { Installer::activate(); }
         add_action('grw_tick',[Sync::class,'tick']);
         add_action('admin_menu',[Admin::class,'menu']);
+        add_action('admin_menu',[Admin::class,'secondary_menu']);
         add_action('admin_enqueue_scripts',[Admin::class,'assets']);
         add_action('admin_init',function(){ register_setting('grw','grw_settings',['sanitize_callback'=>[Admin::class,'settings']]); });
         add_filter('upload_mimes',function($m){ if (Security::can()) { $m['json']='application/json'; } return $m; });

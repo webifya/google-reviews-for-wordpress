@@ -2,10 +2,10 @@
 namespace Webifya\GRW;
 if (!defined('ABSPATH')) { exit; }
 final class Reviews {
-    public static function normalize(array $r, int $location, string $type='import',bool $validated=false) {
+    public static function normalize(array $r, int $location, string $type='import',bool $validated=false,bool $verbatim=false) {
         if (!$validated && !Locations::get($location)) { return Security::error(__('Unknown location.', 'google-reviews-for-wordpress')); }
         foreach ($r as $v) { if ($v!==null && !is_scalar($v)) { return Security::error('Review fields must be scalar values'); } }
-        $name=sanitize_text_field($r['reviewer']??$r['reviewer_name']??''); $text=sanitize_textarea_field($r['content']??$r['review_text']??'');
+        $name=sanitize_text_field($r['reviewer']??$r['reviewer_name']??''); $raw=(string)($r['content']??$r['review_text']??''); $text=$verbatim?$raw:sanitize_textarea_field($raw);
         if (!$name || !$text) { return Security::error(__('Reviewer and content are required.', 'google-reviews-for-wordpress')); }
         $rating=$r['rating']??null;
         if ($rating === '') { $rating=null; }
@@ -26,7 +26,7 @@ final class Reviews {
         if (!Locations::get($location)) { $result['errors'][]=['row'=>0,'message'=>'Unknown location']; return $result; }
         foreach ($rows as $i=>$r) {
             if (!is_array($r)) { $result['errors'][]=['row'=>$i+1,'message'=>'Invalid row']; continue; }
-            $data=self::normalize($r,$location,$type,true);
+            $data=self::normalize($r,$location,$type,true,$type==='licensed');
             if (is_wp_error($data)) { $result['errors'][]=['row'=>$i+1,'message'=>$data->get_error_message()]; continue; }
             $old=$wpdb->get_row($wpdb->prepare("SELECT id,content_hash FROM $table WHERE identity=%s",$data['identity']),ARRAY_A);
             $data['updated_at']=current_time('mysql',true);

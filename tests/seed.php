@@ -9,7 +9,7 @@ Reviews::import([
 ['external_id'=>'sample-4','reviewer'=>'Sample reviewer D','rating'=>4,'content'=>'Sample data only. A positive experience with friendly service and clear advice.','review_date'=>'2024-01-01','source_name'=>'Development sample'],
 ['external_id'=>'sample-5','reviewer'=>'Sample reviewer E','rating'=>5,'content'=>'Sample data only. Thank you for keeping us informed and making time for our questions.','review_date'=>'2024-01-01','source_name'=>'Development sample']
 ],$l);
-$config=['locations'=>[$l],'sort'=>'manual','max_chars'=>210,'show_dots'=>true,'autoplay'=>false];$w=Widgets::save(['name'=>'Classic sample','config'=>$config]);$w2=Widgets::save(['name'=>'Second independent sample','config'=>array_merge($config,['heading'=>'SECOND WIDGET','template'=>'minimal','card'=>'#ffffff','section'=>'#ffffff','border'=>'#dddddd','border_width'=>1])]);
+$config=['source'=>'','empty_mode'=>'message','empty_message'=>'No reviews available.','locations'=>[$l],'sort'=>'manual','max_chars'=>210,'show_dots'=>true,'autoplay'=>false];$w=Widgets::save(['name'=>'Classic sample','config'=>$config]);$w2=Widgets::save(['name'=>'Second independent sample','config'=>array_merge($config,['heading'=>'SECOND WIDGET','template'=>'minimal','card'=>'#ffffff','section'=>'#ffffff','border'=>'#dddddd','border_width'=>1])]);
 $id=wp_insert_post(['post_title'=>'Sample review carousel preview','post_status'=>'publish','post_type'=>'page','post_content'=>'[google_reviews_widget id="'.$w.'"] [google_reviews_widget id="'.$w2.'"]']);
 file_put_contents(ABSPATH.'grw-preview-ids.json',json_encode(['widget'=>$w,'widget2'=>$w2,'page'=>$id]));
 echo "Preview page $id, widgets $w and $w2\n";

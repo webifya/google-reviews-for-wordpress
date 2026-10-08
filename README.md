@@ -1,131 +1,58 @@
 # Google Reviews for WordPress
 
-A WordPress-native plugin for official Google Maps embeds and review cards using content you are authorized to publish. No API key, subscription, application server, build tool, or external database is required in production.
+**1.3.0-rc.1 — Phase 4 candidate. Live Google access has not been verified.**
 
-**Release status:** 1.2.0-rc.1. See [Phase 3 verification and limitations](docs/PHASE3-REPORT.md) before deploying. An arbitrary Google Maps URL cannot supply individual review data, unlimited Google reviews, or daily Google synchronization.
+Review carousels are the primary product. Google Places API (New) is implemented for non-owned listings, with at most **five Google-selected reviews per business**. It requires a billing-enabled Google Cloud project, a restricted server API key and acceptance of the applicable agreement. Places content loads live; it is not saved to WordPress or embedded into cached pages. This provider cannot supply a daily stored review archive or 100 reviews from a non-owned listing.
 
-## Installation
+Daily stored synchronization is available for trusted adapters with a documented permanent storage and custom display grant. No such third-party account/license was available for live testing. The complete non-owned → 100 reviews → daily stored sync requirement remains blocked. Fixtures prove software behavior, not live provider access.
 
-1. Back up your WordPress site. Requires WordPress 6.4+, PHP 8.1+, MySQL/MariaDB.
-2. Upload `google-reviews-for-wordpress-v1.2.0.zip` under **Plugins → Add New → Upload Plugin**; activate.
-3. Open **Google Reviews → Locations** and add/confirm the business details.
-4. Import CSV/JSON with publishing permission, add manual testimonials, or configure an authorized local JSON feed. For an official map, paste the HTML or `src` from Google's **Share → Embed a map** iframe into the location wizard. Preview it on the same page and publish the separate map shortcode.
-5. Create a widget, select business locations by name, save, customize the live preview, and copy its shortcode into your page. Choose a full-width section in your page builder to reproduce the reference composition.
-6. Enable analytics only after configuring consent and privacy notices.
+## Install and connect
 
-## Features
+1. Requires WordPress 6.4+, PHP 8.1+, MySQL/MariaDB. Upload the candidate ZIP through **Plugins → Add New → Upload Plugin** and activate.
+2. Open **Google Reviews → Locations → Add Location**. Enter a Maps business URL or Place ID. **Find Business** uses configured Places credentials. Standard Maps /place/ URLs use official Text Search and show up to three candidates for confirmation. Supported share redirects are resolved without reading listing HTML. URLs without a usable business name or Place ID require manual ID entry. Manual business identity confirmation is available without credentials.
+3. Confirm the business and supply your own label/address. Google lookup identity, rating and count are shown only during that request; the Place ID is saved.
+4. **Save location & connect reviews** opens six steps: choose business, choose method, provide authorization, test actual retrieval, preview reviews, enable the supported display/sync mode.
+5. Configure the key privately under **Settings → Review connections**. Enable **Places API (New)** and billing in Google Cloud; restrict the key to that API and your server's outbound IP. Publish appropriate public terms/privacy, review regional agreement eligibility, and set project quotas. The site also caps request attempts per UTC day, default 100.
+6. A successful response containing reviews validates the collection. An empty response, a saved URL, or a saved key alone does not mean reviews are connected.
+7. Create a widget, choose its locations, customize, save and paste `[google_reviews_widget id="123"]` into a page. `[google_reviews_widget id="123" limit="20"]` reduces its saved display limit. A Places location still supplies at most five reviews.
+8. Enable analytics only after configuring consent and privacy notices.
 
-- Independent locations and widgets; indexed dedicated tables; storage has no review-count cap.
-- Authorized CSV/JSON batches of 200, deduplication by location/source/stable external ID, and updates that preserve moderation. Files are parsed locally; there is no uploaded code execution.
-- Manual testimonials and protected third-party text: imported reviews can be hidden, featured or removed, but cannot be edited as original reviews.
-- **Classic Google Reviews Carousel**, Modern Minimal, Dark Premium, Review Grid, Compact Review Slider; additional Official Google Maps embed layout.
-- Colors, typography, spacing, visibility, filtering, review selection/order, summary, arrows, dots, autoplay, infinite cycling, pointer swipe/drag, keyboard support and reduced motion.
-- Independent shortcodes and a Gutenberg block selecting a saved widget.
-- Privacy-conscious first-party analytics, consent integration, daily/monthly tables, a daily bar chart, widget/location rankings and CSV export.
-- Source status, cron logs, JSON settings export/import, safe diagnostics, table/index repair and an eight-step guided onboarding flow.
+Navigation: **Dashboard, Locations, Reviews, Widgets, Analytics, Settings**. Connections, synchronization and diagnostics are secondary settings pages. Reviews shows live collections on request; retained legacy content has a separate opt-in view and its original provenance. Authentic text cannot be edited.
 
-## Upgrade from 1.1.0-rc.1
+## Display and costs
 
-Back up the database and plugin directory. Upload the new ZIP using **Plugins → Add New → Upload Plugin**, choose **Replace current with uploaded**, and keep the plugin active. Migration preserves locations, reviews, widgets, styling, analytics and settings. Do not uninstall to upgrade. Previous-release upgrade was verified with a complete before/after snapshot.
+Classic defaults follow the reference composition: light gray section, centered subtitle and bold title, rounded light cards, overlapping circular avatars, relative dates, gold stars, circular arrows, three/two/one cards, five-second autoplay, looping and swipe. Five review templates, independent multiple widgets, colors, typography, radius, spacing, arrows, animation, filtering and ordering remain customizable. Google author information, available credits, direct source links, visit month/year when supplied and Google Maps attribution stay visible. Google data is kept separate from legacy datasets. Places supports ordering/filtering of its selected subset, not discovery of the whole review history; saved-ID selection/featured order cannot apply to its ephemeral content.
 
-## New in Phase 3
+Public empty widgets can be hidden or show a configured message. Preview traffic is excluded from analytics. Original review links, navigation, read-more, widget/location views and estimated session uniques preserve consent, DNT and GPC handling.
 
-Public Google Maps Listing is the default. Ownership, OAuth and API keys are not required to save a business, public listing link or official sharing embed. Locations now have searchable, filtered, paginated cards with distinct listing, embed and review-source statuses. Add/manage uses a four-step dialog: Add Listing → Verify Business → Choose Review Source → Preview & Save. Advanced fields stay collapsed, drafts survive closing within the same browser tab, and invalid saves preserve inputs.
+Places content is fetched through a signed, bounded public widget route. Cached pages hold only a placeholder; the content response uses `no-store`. Do not configure a CDN to override those headers or cache the POST REST response. Dynamic review images still contact their supplied provider hosts. JavaScript is required for live Places cards. Key changes invalidate cached placeholder tokens: purge your page cache after configuring or disconnecting credentials.
 
-Map and Reviews previews are separate. A saved official iframe can appear directly in the editor. Only its allowlisted URL is stored; supplied HTML and attributes are discarded. A frame navigation event cannot establish that Google actually displayed a visible map, so the preview explicitly asks for visual verification and provides blocked/timeout guidance. Without an actual imported dataset, the Reviews tab stays empty.
+Google's current global list gives Place Details Enterprise + Atmosphere (reviews) a 1,000-event monthly free usage cap, then $25 per 1,000 in the first paid tier. Identity lookup requests rating/count, using Enterprise: 1,000-event cap, then $20 per 1,000 in the first paid tier. Business-name lookup from a Maps URL uses Text Search Enterprise: 1,000-event cap, then $35 per 1,000 in the first paid tier. Rates vary by region, billing agreement and volume. This is pay-as-you-go, not a required plugin subscription. Live widgets retrieve up to five locations per request; choose locations explicitly for larger sites. Multiple locations and previews consume additional calls; the site cap is a request-attempt ceiling, not a billing guarantee. See [Google pricing](https://developers.google.com/maps/billing-and-pricing/pricing).
 
-Location Connections separates public listings, optional Google Business Profile owner authorization, and authorized feeds. Nine screens share plugin-scoped navigation, cards, controls, responsive tables and dismissible notices. Widgets can independently include a map or an outbound Maps link. Changing listing metadata preserves a feed's existing schedule and pagination cursor; changing its source identity clears the old cursor.
+## Daily synchronization and provider extensions
 
-## New in Phase 2
+The hourly WP-Cron task processes up to five due locations, at most five pages per job, 500 rows per page. Stable source IDs deduplicate and update records; locks prevent overlap, errors retain existing data, retries back off, successful daily jobs schedule another run in 24 hours. On quiet cPanel sites, use a server cron job every five minutes to request your site's `wp-cron.php`, or use your host's PHP path to execute it. Keep the normal WordPress scheduler enabled unless you configured an equivalent real cron.
 
-The builder has isolated live previews, desktop/tablet/mobile views, five color presets, undo, save as new, named location selection and publish controls. Carousel instances clean up timers/listeners when removed; resize preserves the current card and expanded text. Review management adds visibility filters, bulk visibility/feature changes, protected manual reassignment and import history. Widgets and empty locations can be deleted. Connection cards show stored review counts and scheduling status. Official short sharing links can be resolved with bounded, allowlisted redirects and manual identity confirmation.
+[Provider setup and policy contract](docs/PHASE4-PROVIDERS.md) describes `PermanentReviewProvider`. It declares access requirements, review bounds, ownership, daily capability, historical/new access, attribution and a license reference. Credentials and endpoint allowlists belong in trusted provider code. Time-limited feed licenses need an adapter with explicit expiry/purge handling; they must not claim permanent storage permission. A license URL or a provider's marketing claim is not itself proof of upstream publication rights.
 
-Optional Google owner tools use encrypted credentials and temporary responses. Read [Google setup and restrictions](docs/GOOGLE-SETUP.md) and [source comparison](docs/SOURCES.md). Google live authorization has **not** been tested; this is a release candidate. No Google logo or verification marker is fabricated on local testimonials.
+Legacy local JSON adapters remain supported for existing installations, but are not offered as a Google review connection. Business Profile is an optional owner-only dashboard with approved-project/OAuth/managed verified-business requirements, up to 50 reviews per page and pagination. It does not publish public cards or run a misleading zero-review public sync.
 
-## Shortcodes
+## Upgrade and rollback
 
-```text
-[google_reviews_widget id="123"]
-[google_reviews_widget id="123" limit="20"]
-[google_reviews_grid id="123"]
-[google_reviews_map location="456" height="350"]
-[google_reviews_combined id="123"]
-```
+Back up the database and plugin directory. Upload this ZIP and choose **Replace current with uploaded**. Do not uninstall to upgrade. No locations, reviews, widgets, IDs, source provenance, styling, analytics or privacy settings are removed by the migration. Legacy map/grid/combined shortcodes and saved map templates still render, but new map controls/shortcode generators and testimonial/upload workflows are absent from the primary UI. Existing widgets keep their saved source settings; new widgets default to connected sources. Legacy widgets without an empty-state setting retain a displayed message.
 
-Use in WordPress posts/pages, Gutenberg Shortcode blocks, Classic Editor, Elementor's shortcode widget and other shortcode-compatible builders. Only `id` and `limit` are accepted. The block is **Google Reviews Widget**.
+Rollback: restore the previous plugin ZIP and the database backup if you made changes after upgrade. Existing legacy configuration remains compatible. New Places widgets are a new feature and cannot render through an older plugin; switch those widgets to an available legacy source or restore the backup. Changing WordPress authentication salts invalidates encrypted provider credentials and requires private reconfiguration. Uninstall always removes private credentials; data deletion otherwise remains opt-in. Deactivation preserves data.
 
-## Sources and synchronization
+## Development and evidence
 
-| Mode | Custom cards | Automatic sync | Requirements |
-| --- | --- | --- | --- |
-| Official Google Maps share embed | No; Google's own iframe | Google controls iframe content | Official embed URL; site privacy setup |
-| Authorized CSV/JSON import | Yes | No | Rights to store and republish content |
-| Manual testimonials | Yes, accurately labeled | No | Publishing rights |
-| Authorized local JSON feed | Yes | Yes | JSON media attachment, rights confirmation, active location |
-| Google Business Profile | Owner dashboard only; no public cards | First-page owner cache refresh; paginated browsing | Eligible approved project, OAuth, verified business; see setup guide |
-| Extension adapter | Yes when license permits | Adapter-dependent | Trusted integration code and explicit redistribution rights |
+- `tests/integration.php`: existing security, storage, moderation, analytics and adapter regression checks.
+- `tests/phase3.php`: retained map/shortcode and migration compatibility.
+- `tests/phase4.php`: synthetic provider transport, permissions, credential/URL safety, no storage, attribution, budgets, real cron path, dedupe, updates and empty states.
+- `tests/browser.cjs`: retained carousel behavior and responsive interaction.
+- `tests/phase4-browser.cjs`: simplified admin workflow and dynamic Places cards in Chromium, Firefox and WebKit. The isolated mu-plugin fixture is **never packaged**.
+- `tests/upgrade.php`: exact persisted-data snapshots across the previous release; repeated migration idempotency.
+- `tests/benchmark.php`: 10/100/1,000/10,000 stored-review datasets.
 
-Upload the local JSON feed through **Media → Add New**, then enter its media attachment ID on the location. JSON uploads are enabled only for administrators. Maintain/replace that attachment file through your authorized publishing workflow. The plugin reads only `.json` files resolved inside WordPress uploads, up to 10 MB; it does not call a remote URL. A feed is a JSON array in the import schema. Changes are detected on each scheduled sync; stable IDs update existing records. Review disappearance does not automatically delete saved records.
+GitHub CI covers PHP 8.1–8.4, minimum/latest WordPress, MySQL/MariaDB, package installation, upgrade and three browser engines. [Historical Phase 3 evidence](docs/PHASE3-REPORT.md) describes the prior release, not the current primary UI.
 
-Schedule choices: 12h, 24h, 48h, weekly or manual. WP-Cron checks hourly and handles up to five due locations per tick, at most five provider pages per location. Pagination continues on subsequent checks. Locks prevent concurrent sync; temporary failures preserve valid data and retry at 15/30/60 minutes before returning to the configured interval. A low-traffic site needs real server cron. On cPanel, configure a five-minute job using your hosting account's PHP path:
-
-```sh
-/usr/local/bin/php /home/ACCOUNT/public_html/wp-cron.php >/dev/null 2>&1
-```
-
-After testing that job, set `DISABLE_WP_CRON` in `wp-config.php`. Never claim that this makes unsupported Maps retrieval available.
-
-See [source research](docs/SOURCES.md) and [adapter contract](docs/ADAPTERS.md).
-
-## Import schema
-
-JSON array or CSV header:
-
-```csv
-external_id,reviewer,rating,content,review_date,avatar,permalink,source_name,source_url,response
-sample-001,Sample reviewer,5,Sample only. Replace with authorized content.,2024-01-15,,,Authorized dataset,,
-```
-
-Alternate headers: `review_id`, `reviewer_name`, `review_text`, `reviewer_profile_image_url`, `review_permalink`, `business_response`. Select the location explicitly for each import; IDs in the file never silently associate an ambiguous business. Ratings are integers 1–5 or blank. Dates are ISO calendar dates or ISO timestamps; blank stays unknown. UTF-8 and Unicode are preserved. Use stable external IDs (or a stable original permalink) for updates. Without either, a changed text is considered a new identity. No verification badge is inferred from a source name.
-
-Files: 10 MB per browser-selected upload; 500 rows maximum per REST request (UI sends 200). Importing more than that is supported through repeated batches/files. Each widget defaults to 100 matching reviews; display limit is validated up to 10,000 to protect page memory. Storage has no arbitrary count limit. For large sites, keep display counts modest, use location/rating filters, and avoid random sorting on huge datasets. Export currently assembles downloaded data in the browser, so very large exports may need an external authorized backup workflow.
-
-## Privacy and analytics
-
-Disabled by default. An impression occurs after at least 30% of the viewport-reachable section has been visible for one second; it is deduplicated per widget/session. Unique estimates use a random sessionStorage token, hashed on the server and retained in expiring transients; no IP, user agent, visitor email or WordPress user identity is recorded. No browser cookies are created. The token is sent only after consent. Administrator previews are excluded. Do Not Track and Global Privacy Control prevent collection.
-
-Consent manager integration:
-
-```javascript
-window.grwAnalyticsConsent = true; // set before plugin initialization when consent is granted
-window.dispatchEvent(new CustomEvent('grw:consent', {detail: true})); // grant later
-window.dispatchEvent(new CustomEvent('grw:consent', {detail: false})); // revoke
-```
-
-Daily aggregate counters expire after the configured 1–730 days (default 90). Public collection uses same-origin checks, strict event validation, maximum 30 events per batch and 120 per session token per minute and a global 3,000-event collection budget per minute. Anonymous counters remain estimates: a determined client can rotate tokens or forge events; they are not billing-grade analytics. Engagement rates are event counts divided by impressions and can exceed 100%. Per-location impressions indicate an assigned widget was visible, not that a particular card was read. Public assets and URLs work with page caching; synchronization never runs during shortcode rendering.
-
-External avatars and official embeds may contact third parties. Google iframe content cannot be restyled as plugin cards. Configure those features consistently with your consent policy; the plugin does not automatically block iframe loading for every consent platform.
-
-## Development and testing
-
-No frontend asset compilation is required: shipped vanilla CSS/JS are production assets.
-
-```sh
-find . -name '*.php' -print0 | xargs -0 -n1 php -l
-npm install
-npm run check
-GRW_WP_ROOT=/path/to/disposable/wordpress php tests/integration.php
-GRW_WP_ROOT=/path/to/disposable/wordpress php tests/phase3.php
-GRW_BROWSER=chromium node tests/phase3-browser.cjs
-python3 scripts/package.py
-```
-
-Tests write sample data into a disposable installation; do not run them on a production database. GitHub Actions tests MySQL-backed WordPress across PHP/WordPress versions and builds the ZIP; browser CI exercises Chromium, Firefox and WebKit. For local browser tests, use `scripts/browser-site.sh` and follow the environment variables in `tests/browser.cjs`. [Verification record](docs/VERIFICATION.md) distinguishes executed checks from planned CI.
-
-## Architecture and lifecycle
-
-Namespaced class services: Installer, Locations, Reviews, Sources, Sync, Widgets, Renderer, Analytics, Admin, Security and Plugin bootstrap. Five indexed tables isolate storage. Schema installation is idempotent and versioned; cron registration is idempotent. REST mutations require `manage_options` and WordPress REST cookie nonces; public analytics have a separate restricted payload. Safe source helpers allow only exact code-defined hosts, reject unsafe URLs and disable redirects. No Google scraping, hidden endpoint access, proxy rotation or CAPTCHA bypass exists.
-
-Deactivation clears scheduled work and preserves data. Uninstall always removes Google OAuth credentials and cached Google responses. Other plugin data is preserved unless the administrator explicitly selects data deletion. Multisite network activation and network-wide cleanup are not supported; install/configure per site. Diagnostics contain version/health/count information, never provider tokens or internal logs. Source credentials belong in trusted integration configuration and must not be exported.
-
-GPL-2.0-or-later. Not affiliated with or endorsed by Google. Google trademarks belong to their owners.
+No scraping, fabricated reviews, false verification badges or unverified claims of production synchronization are included.

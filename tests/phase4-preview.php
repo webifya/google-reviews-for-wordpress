@@ -1,0 +1,3 @@
+<?php require __DIR__.'/wp-load.php';$ids=json_decode(file_get_contents(ABSPATH.'grw-phase4-ids.json'),true);
+if(isset($_GET['legacy'])){$content=do_shortcode('[google_reviews_map location="'.$ids['legacy'].'"]');}else{$content=do_shortcode('[google_reviews_widget id="'.$ids['widget'].'"] [google_reviews_widget id="'.$ids['widget2'].'"]');}
+?><!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>SYNTHETIC provider test</title><?php wp_head();?><style>body{margin:0;font-family:Arial,sans-serif}.fixture-label{padding:10px;text-align:center;background:#fff5d0}</style></head><body><p class="fixture-label">SYNTHETIC TRANSPORT FIXTURES — not live Google reviews</p><?php echo $content;wp_footer();?></body></html>

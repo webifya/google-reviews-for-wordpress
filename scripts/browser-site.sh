@@ -26,3 +26,8 @@ unzip -q "$TASK_ROOT/plugin.zip" -d "$TASK_ROOT/wordpress/wp-content/plugins"
 GRW_WP_ROOT="$TASK_ROOT/wordpress" php tests/integration.php
 GRW_WP_ROOT="$TASK_ROOT/wordpress" php tests/seed.php
 cp tests/preview.php "$TASK_ROOT/wordpress/grw-preview.php"
+
+mkdir -p "$TASK_ROOT/wordpress/wp-content/mu-plugins"
+cp tests/phase4-browser-fixture.php "$TASK_ROOT/wordpress/wp-content/mu-plugins/grw-phase4-fixture.php"
+GRW_WP_ROOT="$TASK_ROOT/wordpress" php tests/phase4-browser-seed.php
+cp tests/phase4-preview.php "$TASK_ROOT/wordpress/grw-phase4-preview.php"

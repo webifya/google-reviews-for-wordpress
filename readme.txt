@@ -1,39 +1,43 @@
 === Google Reviews for WordPress ===
 Contributors: webifya
-Tags: reviews, testimonials, carousel, google maps
+Tags: reviews, carousel, google maps
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.2.0-rc.1
+Stable tag: 1.3.0-rc.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Official map embeds and custom carousels for reviews you are authorized to publish. No API key required for installation.
+Live Google Places review carousels, permitted provider adapters and consent-aware analytics.
 
 == Description ==
-Multiple locations and widgets, five custom templates, shortcode and block, authorized CSV/JSON imports, manual testimonials, an authorized local JSON feed adapter with daily scheduling, moderation, visual styling and consent-aware aggregate analytics.
-Public Google Maps URLs do not retrieve individual reviews. Official embeds retain Google's presentation. No scraping or fabricated verification badges.
+Review-first setup: add a business, connect a supported source, test retrieval, customize a carousel and publish its shortcode. Navigation: Dashboard, Locations, Reviews, Widgets, Analytics, Settings.
+Google Places API (New) supports non-owned listings with up to five Google-selected reviews. Billing, a restricted API key and applicable agreement/terms/privacy are required. Reviews load live without WordPress storage or page-cached content. JavaScript is required. Daily stored synchronization needs an installed provider with documented permanent storage/public display rights. No such live feed was verified. This is a candidate, not proof of production Google retrieval.
+Legacy records, widget IDs, analytics and map/grid/combined shortcodes remain compatible. Upload/manual/map builders are removed from normal UI. No scraping or fake verification indicators.
 
 == Installation ==
-1. Upload the ZIP via Plugins > Add New > Upload Plugin.
-2. Activate and open Google Reviews.
-3. Add a public location using the four-step editor. Paste an official sharing iframe to preview its map.
-4. Import authorized reviews separately, create a widget, and insert its shortcode.
-5. Configure privacy settings before enabling analytics or external embeds.
+1. Upload and activate the ZIP via Plugins > Add New > Upload Plugin.
+2. Add a location by Maps business URL or Place ID and confirm its identity.
+3. Open Settings > Review connections and privately configure Google Places API (New), billing and a restricted server key. Set Google project quotas and the site's request budget.
+4. Test retrieval, preview actual returned reviews, create a review widget and copy [google_reviews_widget id="123"].
+5. Configure consent/privacy before analytics. Upgrade by replacing the plugin ZIP, not uninstalling.
 
 == Frequently Asked Questions ==
-= Does a Google Maps URL retrieve all reviews without a key? =
-No. Use Google's official embed, authorized imports, manual testimonials or a licensed adapter.
-= Does synchronization work without a key? =
-The authorized local JSON media feed can sync on schedule. It does not collect reviews from Google Maps.
-= Is storage limited to 100 reviews? =
-No. 100 is the default display count; imports and storage support larger datasets in batches.
-= Does uninstall delete reviews? =
-Only when explicitly enabled in Settings. Deactivation preserves data.
+= Does a Maps URL retrieve all reviews without a key? =
+No. Places needs a key and supplies up to five selected reviews; share URLs without a Place ID require manual ID entry.
+= Does Places support daily stored review synchronization? =
+No. Google review caching restrictions prevent this implementation from maintaining an archive. A permitted licensed provider is needed.
+= Does saving credentials mean Connected? =
+No. Review retrieval must successfully return individual reviews.
+= What does uninstall remove? =
+Private credentials are always removed. Other plugin data is retained unless deletion is explicitly enabled. Deactivation preserves data.
 = What external services are used? =
-Optional official Google Maps iframes contact Google (https://www.google.com/help/terms_maps/ and https://policies.google.com/privacy). Reviewer avatar URLs contact their configured hosts. Optional Google Business Profile owner tools contact accounts.google.com, oauth2.googleapis.com and Google Business Profile API hosts using OAuth (https://developers.google.com/my-business/content/policies). They do not republish Google reviews as public cards. Review external services and permissions before use.
+Google Places calls places.googleapis.com from WordPress using your encrypted server key; live display contacts supplied reviewer image hosts. Google Maps attribution/source links are retained. Review Google's service terms (https://cloud.google.com/maps-platform/terms/maps-service-terms), Places policy (https://developers.google.com/maps/documentation/places/web-service/policies), pricing (https://developers.google.com/maps/billing-and-pricing/pricing) and privacy (https://policies.google.com/privacy). Google account/OAuth/Business Profile endpoints are optional owner-dashboard tools (https://developers.google.com/my-business/content/policies). Existing map shortcodes contact Google through their saved official iframe. Purge page caches after key changes; never cache live-widget POST REST responses.
 
 == Changelog ==
+= 1.3.0-rc.1 =
+Live-only Google Places adapter with encrypted keys, request budgets, identity lookup, tested connection flow, mandatory author/source attribution and no stored review content. Six-item navigation, review dashboard, review-only builder, configurable empty states and documented licensed daily provider contract. Legacy migration safety preserved. Live Google access remains unverified; full-history non-owned daily archive requires a permitted provider.
+
 = 1.2.0-rc.1 =
 Public listing default, four-step editor, separate map/reviews previews, secure sharing iframe parsing, map/grid/combined shortcodes, optional widget maps, distinct connections, responsive administration, metadata-only schedule preservation. Live Google OAuth still requires verification.
 
