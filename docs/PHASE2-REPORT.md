@@ -6,7 +6,7 @@ Release: **1.1.0-rc.1**, deliberately a prerelease. Baseline: `36dea654964656a13
 
 All PHP services, schema/lifecycle, REST routes, frontend/admin assets, Gutenberg/shortcodes, source contracts, tests, workflows, package inputs and original documentation were reviewed. The prioritized [audit ledger](AUDIT-PHASE2.md) records confirmed findings.
 
-High-priority fixes: anonymous analytics collection now has a global fixed-minute write budget as well as strict per-token limits; nested input is handled safely; repeated preview replacements no longer retain frontend instances, timers or observers. These reduce abuse/resource exposure; anonymous analytics remain forgeable estimates.
+High-priority fixes: anonymous analytics collection now has a global fixed-minute write budget as well as strict per-token limits; nested input is handled safely; repeated preview replacements no longer retain frontend instances, timers or observers. These reduce abuse/resource exposure; anonymous analytics remain forgeable estimates. Transient-based budgets are best effort under concurrent requests, rather than an atomic network abuse limit.
 
 Medium-priority fixes: continuous event activity flushes without starvation and drains batches beyond 30; navigation/outbound actions include interaction metrics; grids use the reachable viewport portion; duplicate session/widget mounts share client deduplication. Resize preserves current review and expanded clone state; motion preference changes update autoplay. Location metadata edits preserve status/schedule, while provider changes discard incompatible cursors. Normalized source metadata participates in update hashes, manual identities are stable, fractional counts become integers, invalid hours and nested fields are rejected. Import validates the location once per batch. Public review queries are cached and invalidated by imports, moderation and location edits.
 
@@ -24,14 +24,14 @@ Authorized CSV/JSON import, manual testimonials, authorized local JSON feed and 
 
 - Local WordPress 7.1.3 / PHP 8.4.23 / official SQLite integration: **101 integration assertions**, including the final index migration.
 - Browser suites: Chromium, Firefox and WebKit. Expanded checks cover 320/375/768/1024/1440, independent instances, loops, autoplay/motion, touch/drag, keyboard status, inline/modal/empty states, clone expansion after resize, instance disposal, disabled controls, every custom card template and bounded continuous analytics batching. Screenshots are saved for all engines and templates. 39 checks per engine passed locally (117 total), with no JavaScript errors.
-- Admin: all eight screens, saved/live styling, nonce/capability denial, real consent-driven viewport analytics, rapid-scroll deduplication and guided onboarding. 40 admin checks passed in the first expanded run. Additional checks verify device viewport widths, presets, save-as-new/reset/undo, hidden sync settings, add/delete location, owner-only setup guidance, bulk hide/filter and real clipboard copying.
+- Admin: all eight screens, saved/live styling, nonce/capability denial, real consent-driven viewport analytics, rapid-scroll deduplication and guided onboarding. **44 admin checks passed in one final local run**, including onboarding. Additional checks verify device viewport widths, presets, save-as-new/reset/undo, hidden sync settings, add/delete location, owner-only setup guidance, bulk hide/filter and real clipboard copying.
 - Actual **Plugins → Add New → Upload Plugin** clean installation and **Replace current with uploaded** RC1 upgrade were executed. A full persisted snapshot compares locations, reviews, widget configurations/styling, analytics, logs and privacy settings; repeated migration is also checked.
 - Security regressions: foreign analytics origins, malformed events/tokens/settings/review fields, rate overshoot/token rotation budgets, SQL-safe searches/IDs, escaped HTML/CSS and CSV formulas, anonymous/nonce-free mutation denial, local-feed traversal, unsafe URL schemes/hosts/credentials, Google host/resource allowlists, foreign share redirects, OAuth HTTPS requirement, credential encryption/redaction, protected source content/reassignment and confirmed reset/deletion.
 - No executable file upload/deserialization pathway is introduced. JSON feeds are bounded local files within uploads; unknown network destinations cannot be chosen through location fields. OAuth state is random, expires and binds to the administrator; its live redirect/token exchange remains unverified. This is an application review and regression suite, not an independent penetration-test certification.
 
 ## Performance
 
-Synthetic, visibly labeled Unicode fixtures only. macOS, PHP 8.4.23, WordPress 7.1.3, official SQLite/MySQL compatibility layer; one measurement per dataset, warm application process, no load/concurrency simulation. Rendering uses 100 matching reviews; admin page uses 50. These are observations, not shared-hosting performance guarantees. See `benchmarks-phase2.json` for final timings, query counts, HTML size and process memory. CI also collects native MySQL/MariaDB benchmark artifacts.
+Synthetic, visibly labeled Unicode fixtures only. macOS, PHP 8.4.23, WordPress 7.1.3, official SQLite/MySQL compatibility layer; one measurement per dataset, warm application process, no load/concurrency simulation. Rendering uses 100 matching reviews; admin page uses 50. These are observations, not shared-hosting performance guarantees. See `benchmarks-phase2.json` for final timings, query counts, HTML size and process memory. Native CI measurements are recorded in `benchmarks-mysql.json` and `benchmarks-mariadb.json` (Linux, PHP 8.4.26, WordPress 7.1.3, MySQL 8.0.46/MariaDB 10.11.19). Shared CI timing includes noise: for example, the MySQL 1,000-row cold-query run was 192.25 ms; no repeated-run confidence interval is claimed.
 
 
 | Stored reviews | Cold query ms | Cached query ms | Render ≤100 ms | Admin 50 ms |
@@ -43,11 +43,23 @@ Synthetic, visibly labeled Unicode fixtures only. macOS, PHP 8.4.23, WordPress 7
 
 Peak total PHP process memory was 42.5 MiB. A 100-card response was approximately 96 KB before browser loop clones.
 
+
+| Native database | Stored | Cold ms | Cached ms | Render ≤100 ms | Admin 50 ms |
+|---|---:|---:|---:|---:|---:|
+| mysql | 10 | 3.4 | 1.06 | 2.77 | 0.45 |
+| mysql | 100 | 6.68 | 0.98 | 7.77 | 0.54 |
+| mysql | 1,000 | 192.25 | 1.95 | 9.59 | 1.15 |
+| mysql | 10,000 | 6.08 | 1.13 | 8.72 | 12.5 |
+| mariadb | 10 | 1.98 | 0.68 | 1.89 | 0.23 |
+| mariadb | 100 | 4.25 | 1.16 | 6.57 | 0.39 |
+| mariadb | 1,000 | 5.3 | 0.83 | 6.45 | 1.07 |
+| mariadb | 10,000 | 4.91 | 0.96 | 6.83 | 7.61 |
+
 Storage has no plugin count ceiling. Display defaults to 100, accepts custom 1–10,000, and large HTML/loop clones can consume substantial browser/server memory; use modest output limits rather than displaying all stored reviews. Search with partial text and random ordering can be costly. Query-cache invalidation is immediate via generations, with abandoned entries expiring after five minutes. Added indexes support public/location/source date ordering.
 
 ## Compatibility and limits
 
-Configured CI covers PHP 8.1/8.2/8.3/8.4 × WordPress 6.4.7/current × MySQL 8/MariaDB 10.11, plus browser CI. Executed run status and URL are added below. Native Node is never needed on production hosting; CSS/JS ship in the ZIP. Local PHP server tests use query-string REST routes. Apache rewrites, actual public HTTPS, host filesystem policies and cPanel cron require host-specific validation; they were not simulated as successful deployment. Multisite network activation/cleanup remains unsupported; configure per site. Google approval/ownership/quota/token lifetime remains external. A shared OAuth project/indirect client API service is not offered.
+All **16 native integration jobs passed** for PHP 8.1/8.2/8.3/8.4 × WordPress 6.4.7/current × MySQL 8/MariaDB 10.11, plus browser CI. Browser CI also passed; see delivery evidence below. Native Node is never needed on production hosting; CSS/JS ship in the ZIP. Local PHP server tests use query-string REST routes. Apache rewrites, actual public HTTPS, host filesystem policies and cPanel cron require host-specific validation; they were not simulated as successful deployment. Multisite network activation/cleanup remains unsupported; configure per site. Google approval/ownership/quota/token lifetime remains external. A shared OAuth project/indirect client API service is not offered.
 
 Other limits: full widget backup restoration is not implemented; browser-side very large CSV export uses memory; source review removal does not automatically delete imports; WP-Cron timing depends on traffic or server cron; analytics collection can be forged by clients and the global budget may drop events on very busy sites. Cached pages first built while logged in may omit tracking until cache rebuild. Missing avatars use initials; no Google badge, reviewer identity, star, date or verification status is fabricated. The Google owner UI is read-only; it does not post replies or edit listings.
 
@@ -57,4 +69,8 @@ Download `google-reviews-for-wordpress-v1.1.0.zip`, back up the database, upload
 
 ## Delivery evidence
 
-Final commit, CI totals, remote-main verification, tag, release URL, asset URL and downloaded ZIP SHA-256 are appended after remote verification. No stable release claim is made.
+Implementation commit: `703525e1e9e40448cd363fe0a39e3892f6ab1e6b`, verified on remote main. [GitHub CI run](https://github.com/webifya/google-reviews-for-wordpress/actions/runs/37836838457) completed successfully: all 16 native PHP/WordPress/database combinations, 101 assertions per installation, 39 frontend checks per browser (117 total), 44 admin checks, and zero browser JavaScript errors. The browser setup also ran 101 SQLite integration assertions. Native CI ZIP and local ZIP match byte-for-byte.
+
+A subsequent documentation-only commit records this evidence and benchmark artifacts; production package files are unchanged from the tested implementation. The final commit is resolved by the prerelease tag. This avoids repeating the same runtime suite solely for report prose.
+
+Release target: [v1.1.0-rc.1](https://github.com/webifya/google-reviews-for-wordpress/releases/tag/v1.1.0-rc.1). Asset target: [WordPress installation ZIP](https://github.com/webifya/google-reviews-for-wordpress/releases/download/v1.1.0-rc.1/google-reviews-for-wordpress-v1.1.0.zip). SHA-256: `8b7c257cf77fe35d1bcc210498d4466cf62dfcc9577a59ac9a53995633382d58`. Publication and downloaded-asset confirmation are recorded in the accompanying final delivery report. No stable release claim is made.

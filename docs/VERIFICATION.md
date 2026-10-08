@@ -1,3 +1,5 @@
+> This file preserves Phase 1 evidence. For the current 1.1.0-rc.1 upgrade, see [Phase 2 verification](PHASE2-REPORT.md).
+
 # Verification record
 
 Status: 1.0.0 candidate; final verification results below distinguish executed checks from unverified environments.
