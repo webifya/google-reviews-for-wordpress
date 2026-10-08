@@ -5,8 +5,8 @@ Status: 1.0.0 candidate; final verification results below distinguish executed c
 ## Executed locally
 
 - PHP 8.4.23: all plugin PHP files linted successfully.
-- WordPress 7.1.3 with the official SQLite Database Integration drop-in: **54 integration assertions passed**.
-- A second fresh WordPress installation, plugin extracted from the generated installation ZIP: **54 assertions passed**.
+- WordPress 7.1.3 with the official SQLite Database Integration drop-in: **55 integration assertions passed**.
+- A second fresh WordPress installation, plugin extracted from the generated installation ZIP: **55 assertions passed**.
 - Coverage: activation/table installation/idempotence, cron registration/deactivation, location creation/update, URL/embed validation, SSRF allowlist, Unicode imports, duplicate detection/stable-ID updates, invalid ratings/dates, filtering/order/moderation, multiple widgets, sanitized CSS, shortcode overrides, accurate subset summaries, authorized adapter sync, locks/retries/data preservation, local JSON feed updates/path checks, capability/REST isolation, analytics consent/collection/dedup/origin/token checks, CSV formula safety and uninstall retention/cleanup.
 - Chrome: expanded suite also covers autoplay, reduced motion, single-review navigation and touch pointer events. Admin browser checks cover all eight screens, saving/live styling, nonce enforcement, real visible-impression events, deduplication and complete guided onboarding.
 - Chrome, Firefox and WebKit: responsive screenshots and carousel interaction checks at 375, 768, 1024 and 1440 pixels. WebKit exercises the Safari rendering engine; the installed Safari app itself was not automated.

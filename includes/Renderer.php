@@ -10,10 +10,11 @@ final class Renderer {
     public static function render(int $id,array $override=[],bool $preview=false): string {
         $widget=Widgets::get($id); if (!$widget) { return ''; }
         $c=Widgets::sanitize(array_merge(json_decode($widget['config'],true),$override)); self::assets();
+        if (!$c['locations']) { $c['locations']=array_map(fn($loc)=>(int)$loc['id'],array_filter(Locations::all(),fn($loc)=>!empty($loc['active']))); }
         $rows=Reviews::query($c,1,(int)$c['limit']);
         $vars=[];
         foreach (['section','card','border','heading_color','subtitle_color','text','name_color','muted','stars','link','arrow','arrow_bg','dot','dot_active','font','heading_align','text_align','font_weight','line_height'] as $key) { $vars[]='--'.$key.':'.$c[$key]; }
-        foreach (['heading_size','subtitle_size','name_size','text_size','date_size','width','padding','card_padding','gap','radius','border_width','avatar','min_height','letter_spacing'] as $key) { $vars[]='--'.$key.':'.$c[$key].'px'; }
+        foreach (['heading_size','subtitle_size','name_size','text_size','date_size','summary_width','width','padding','card_padding','gap','radius','border_width','avatar','min_height','letter_spacing'] as $key) { $vars[]='--'.$key.':'.$c[$key].'px'; }
         foreach (['desktop','tablet','mobile','max_lines'] as $key) { $vars[]='--'.$key.':'.$c[$key]; }
         $vars[]='--duration:'.$c['duration'].'ms';
         $settings=get_option('grw_settings',[]);

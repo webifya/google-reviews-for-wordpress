@@ -12,7 +12,7 @@ final class Admin {
         Renderer::assets();
         wp_enqueue_script('grw-admin',plugins_url('assets/admin.js',GRW_FILE),['wp-i18n'],GRW_VERSION,true);
         wp_set_script_translations('grw-admin','google-reviews-for-wordpress',dirname(GRW_FILE).'/languages');
-        wp_localize_script('grw-admin','GRW_ADMIN',['endpoint'=>rest_url('grw/v1/'),'nonce'=>wp_create_nonce('wp_rest'),'page'=>sanitize_key($_GET['page']??'grw'),'defaults'=>Widgets::defaults(),'providers'=>array_map(fn($p)=>['label'=>$p->label(),'sync'=>$p->supports_sync()],Sources::all()),'strings'=>['save'=>__('Save','google-reviews-for-wordpress'),'error'=>__('Request failed','google-reviews-for-wordpress')]]);
+        wp_localize_script('grw-admin','GRW_ADMIN',['endpoint'=>rest_url('grw/v1/'),'nonce'=>wp_create_nonce('wp_rest'),'page'=>sanitize_key($_GET['page']??'grw'),'defaults'=>Widgets::defaults(),'presets'=>Widgets::presets(),'providers'=>array_map(fn($p)=>['label'=>$p->label(),'sync'=>$p->supports_sync()],Sources::all()),'strings'=>['save'=>__('Save','google-reviews-for-wordpress'),'error'=>__('Request failed','google-reviews-for-wordpress')]]);
     }
     public static function page(): void { if (!Security::can()) { return; } echo '<div class="wrap grw-admin"><h1>'.esc_html__('Google Reviews','google-reviews-for-wordpress').'</h1><div id="grw-admin-app"></div><noscript>'.esc_html__('Enable JavaScript to use the visual editor.','google-reviews-for-wordpress').'</noscript></div>'; }
     public static function settings(array $s): array { return ['analytics'=>!empty($s['analytics']),'consent_required'=>!empty($s['consent_required']),'delete_data'=>!empty($s['delete_data']),'retention'=>max(1,min(730,absint($s['retention']??90)))]; }

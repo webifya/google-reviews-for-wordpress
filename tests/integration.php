@@ -43,6 +43,7 @@ $unsafe=Widgets::sanitize(['text'=>'red;display:none','font'=>'url(javascript:al
 $html=do_shortcode('[google_reviews_widget id="'.$wid.'" limit="1"]');check(substr_count($html,'<article')===1&&str_contains($html,'selected subset'),'shortcode override and truthful subset summary');
 check(!str_contains($html,'<script>alert')&&!str_contains($html,'verified'),'no XSS or fabricated verification');
 check(str_contains(Renderer::render($wid2),'grw-dark'),'second widget renderer');
+check(Widgets::sanitize(['template'=>'dark'])['section']==='#16181c','centralized dark template defaults');
 check(is_wp_error(Sync::run($location)),'unsupported sync reports unavailable');
 class TestAdapter implements SourceAdapter {
  public function label():string{return 'Licensed test provider';}public function supports_sync():bool{return true;}

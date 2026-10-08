@@ -738,3 +738,6 @@ msgstr ""
 
 msgid "of"
 msgstr ""
+
+msgid "CID must be numeric."
+msgstr ""
