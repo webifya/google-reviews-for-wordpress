@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) { exit; }
 final class GoogleBusiness {
     private const OPTION='grw_google_private';
     public static function redirect_uri(): string { return admin_url('admin-post.php?action=grw_google_callback'); }
-    public static function status(): array { $s=self::read(); return ['configured'=>!empty($s['client_id'])&&!empty($s['client_secret']),'connected'=>!empty($s['refresh_token']),'redirect_uri'=>self::redirect_uri(),'mode'=>'owner_dashboard_only']; }
+    public static function status(): array { $s=self::read(); return ['configured'=>!empty($s['client_id'])&&!empty($s['client_secret']),'connected'=>!empty($s['refresh_token']),'redirect_uri'=>self::redirect_uri(),'mode'=>'owner_dashboard_only','last_validation'=>$s['last_validation']??null,'requires_attention'=>!empty($s['requires_attention'])]; }
     private static function key(): string { return hash('sha256',wp_salt('auth'),true); }
     public static function read(): array {
         $encoded=get_option(self::OPTION,''); if (!$encoded) { return []; }
@@ -37,7 +37,7 @@ final class GoogleBusiness {
             $s=self::read(); $tokens=self::token_request(['grant_type'=>'authorization_code','code'=>$code,'redirect_uri'=>self::redirect_uri(),'client_id'=>$s['client_id']??'','client_secret'=>$s['client_secret']??'']);
             if (!is_wp_error($tokens) && !empty($tokens['refresh_token'])) { self::write(array_merge($s,$tokens,['expires_at'=>time()+(int)($tokens['expires_in']??3600)])); $success=true; }
         }
-        wp_safe_redirect(admin_url('admin.php?page=grw-sync&google='.($success?'connected':'action_required'))); exit;
+        wp_safe_redirect(admin_url('admin.php?page=grw-integrations&tab=owner&google='.($success?'connected':'action_required'))); exit;
     }
     private static function token_request(array $body) {
         $r=wp_safe_remote_post('https://oauth2.googleapis.com/token',['body'=>$body,'timeout'=>15,'redirection'=>0,'limit_response_size'=>65536]);
@@ -50,7 +50,7 @@ final class GoogleBusiness {
         $s=self::read(); if (empty($s['refresh_token'])) { return new \WP_Error('google_reconnect','Connect an eligible Google Business Profile account first'); }
         if (!empty($s['access_token']) && ($s['expires_at']??0)>time()+60) { return $s['access_token']; }
         $token=self::token_request(['grant_type'=>'refresh_token','refresh_token'=>$s['refresh_token'],'client_id'=>$s['client_id'],'client_secret'=>$s['client_secret']]);
-        if (is_wp_error($token)) { return $token; }
+        if (is_wp_error($token)) { $s['requires_attention']=true; self::write($s); return $token; }
         self::write(array_merge($s,$token,['expires_at'=>time()+(int)($token['expires_in']??3600)])); return $token['access_token'];
     }
     public static function api(string $url) {
@@ -60,7 +60,8 @@ final class GoogleBusiness {
         $r=wp_safe_remote_get($url,['headers'=>['Authorization'=>'Bearer '.$token],'timeout'=>15,'redirection'=>0,'limit_response_size'=>1024*1024]);
         if (is_wp_error($r)) { return new \WP_Error('google_network','Google API is unavailable. Existing authorized imports are preserved.'); }
         $status=wp_remote_retrieve_response_code($r); $data=json_decode(wp_remote_retrieve_body($r),true);
-        if ($status!==200 || !is_array($data)) { return new \WP_Error($status===401?'google_reconnect':($status===429?'google_quota':'google_access'),'Google access failed. Check project approval, verified-business access, API enablement and quota.',['status'=>400]); }
+        if ($status!==200 || !is_array($data)) { if ($status===401) { $credentials=self::read(); $credentials['requires_attention']=true; self::write($credentials); } return new \WP_Error($status===401?'google_reconnect':($status===429?'google_quota':'google_access'),'Google access failed. Check project approval, verified-business access, API enablement and quota.',['status'=>400]); }
+        $credentials=self::read(); $credentials['last_validation']=current_time('mysql'); $credentials['requires_attention']=false; self::write($credentials);
         return $data;
     }
     public static function accounts(?string $cursor=null) { return self::api('https://mybusinessaccountmanagement.googleapis.com/v1/accounts?pageSize=20'.($cursor?'&pageToken='.rawurlencode($cursor):'')); }

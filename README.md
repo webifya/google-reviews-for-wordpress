@@ -2,14 +2,14 @@
 
 A WordPress-native plugin for official Google Maps embeds and review cards using content you are authorized to publish. No API key, subscription, application server, build tool, or external database is required in production.
 
-**Release status:** 1.1.0-rc.1. See [Phase 2 verification and limitations](docs/PHASE2-REPORT.md) before deploying. An arbitrary Google Maps URL cannot supply individual review data, unlimited Google reviews, or daily Google synchronization.
+**Release status:** 1.2.0-rc.1. See [Phase 3 verification and limitations](docs/PHASE3-REPORT.md) before deploying. An arbitrary Google Maps URL cannot supply individual review data, unlimited Google reviews, or daily Google synchronization.
 
 ## Installation
 
 1. Back up your WordPress site. Requires WordPress 6.4+, PHP 8.1+, MySQL/MariaDB.
-2. Upload `google-reviews-for-wordpress-v1.1.0.zip` under **Plugins → Add New → Upload Plugin**; activate.
+2. Upload `google-reviews-for-wordpress-v1.2.0.zip` under **Plugins → Add New → Upload Plugin**; activate.
 3. Open **Google Reviews → Locations** and add/confirm the business details.
-4. Import CSV/JSON with publishing permission, add manual testimonials, or configure an authorized local JSON feed. For an official map, paste the `src` from Google's **Share → Embed a map** iframe and select the official embed widget template.
+4. Import CSV/JSON with publishing permission, add manual testimonials, or configure an authorized local JSON feed. For an official map, paste the HTML or `src` from Google's **Share → Embed a map** iframe into the location wizard. Preview it on the same page and publish the separate map shortcode.
 5. Create a widget, select business locations by name, save, customize the live preview, and copy its shortcode into your page. Choose a full-width section in your page builder to reproduce the reference composition.
 6. Enable analytics only after configuring consent and privacy notices.
 
@@ -24,9 +24,17 @@ A WordPress-native plugin for official Google Maps embeds and review cards using
 - Privacy-conscious first-party analytics, consent integration, daily/monthly tables, a daily bar chart, widget/location rankings and CSV export.
 - Source status, cron logs, JSON settings export/import, safe diagnostics, table/index repair and an eight-step guided onboarding flow.
 
-## Upgrade from RC1
+## Upgrade from 1.1.0-rc.1
 
-Back up the database and plugin directory. Upload the new ZIP using **Plugins → Add New → Upload Plugin**, choose **Replace current with uploaded**, and keep the plugin active. Migration preserves locations, reviews, widgets, styling, analytics and settings. Do not uninstall to upgrade. RC1 upgrade was verified with a complete before/after snapshot.
+Back up the database and plugin directory. Upload the new ZIP using **Plugins → Add New → Upload Plugin**, choose **Replace current with uploaded**, and keep the plugin active. Migration preserves locations, reviews, widgets, styling, analytics and settings. Do not uninstall to upgrade. Previous-release upgrade was verified with a complete before/after snapshot.
+
+## New in Phase 3
+
+Public Google Maps Listing is the default. Ownership, OAuth and API keys are not required to save a business, public listing link or official sharing embed. Locations now have searchable, filtered, paginated cards with distinct listing, embed and review-source statuses. Add/manage uses a four-step dialog: Add Listing → Verify Business → Choose Review Source → Preview & Save. Advanced fields stay collapsed, drafts survive closing within the same browser tab, and invalid saves preserve inputs.
+
+Map and Reviews previews are separate. A saved official iframe can appear directly in the editor. Only its allowlisted URL is stored; supplied HTML and attributes are discarded. A frame navigation event cannot establish that Google actually displayed a visible map, so the preview explicitly asks for visual verification and provides blocked/timeout guidance. Without an actual imported dataset, the Reviews tab stays empty.
+
+Location Connections separates public listings, optional Google Business Profile owner authorization, and authorized feeds. Nine screens share plugin-scoped navigation, cards, controls, responsive tables and dismissible notices. Widgets can independently include a map or an outbound Maps link. Changing listing metadata preserves a feed's existing schedule and pagination cursor; changing its source identity clears the old cursor.
 
 ## New in Phase 2
 
@@ -39,6 +47,9 @@ Optional Google owner tools use encrypted credentials and temporary responses. R
 ```text
 [google_reviews_widget id="123"]
 [google_reviews_widget id="123" limit="20"]
+[google_reviews_grid id="123"]
+[google_reviews_map location="456" height="350"]
+[google_reviews_combined id="123"]
 ```
 
 Use in WordPress posts/pages, Gutenberg Shortcode blocks, Classic Editor, Elementor's shortcode widget and other shortcode-compatible builders. Only `id` and `limit` are accepted. The block is **Google Reviews Widget**.
@@ -104,6 +115,8 @@ find . -name '*.php' -print0 | xargs -0 -n1 php -l
 npm install
 npm run check
 GRW_WP_ROOT=/path/to/disposable/wordpress php tests/integration.php
+GRW_WP_ROOT=/path/to/disposable/wordpress php tests/phase3.php
+GRW_BROWSER=chromium node tests/phase3-browser.cjs
 python3 scripts/package.py
 ```
 

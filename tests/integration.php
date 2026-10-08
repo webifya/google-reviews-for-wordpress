@@ -21,7 +21,7 @@ $location=Locations::save(['name'=>'Integration sample location','active'=>true,
 check(is_int($location)&&$location>0,'location creation');
 check(Locations::save(['id'=>$location,'name'=>'Integration sample location updated','active'=>true,'provider'=>'import','frequency'=>0])===$location,'location update');
 check(is_wp_error(Locations::save(['name'=>'Bad URL','maps_url'=>'https://evil.example/maps','provider'=>'import'])),'invalid maps URL rejected');
-check(Security::embed('https://www.google.com/maps/embed?pb=example')!=='','official share embed accepted');
+check(Security::embed('https://www.google.com/maps/embed?pb=!1m2!1sfixture')!=='','official share embed accepted');
 check(Security::embed('https://evil.example/maps/embed?pb=x')==='','foreign embed rejected');
 check(Security::url('https://127.0.0.1/x')===''&&Security::url('https://user:pass@evil.example/x')===''&&Security::url('javascript:alert(1)')==='','unsafe URLs rejected');
 check(is_wp_error(Sources::request('https://metadata.google.internal/x',['api.example.com'])),'SSRF allowlist enforced');
@@ -67,7 +67,7 @@ wp_set_current_user(0);check(!Security::can(),'anonymous lacks privileged capabi
 do_action('rest_api_init');$response=rest_do_request(new WP_REST_Request('GET','/grw/v1/state'));check($response->get_status()===401,'REST private data denied');
 $request=new WP_REST_Request('POST','/grw/v1/events');$request->set_param('session',str_repeat('b',32));$request->set_param('events',[['widget'=>$wid,'event'=>'impression'],['widget'=>$wid,'event'=>'unique']]);$request->set_param('consent',false);check(Analytics::collect($request)['accepted']===0,'consent required');$request->set_param('consent',true);$request->set_param('session',md5(wp_generate_uuid4()));check(Analytics::collect($request)['accepted']===2,'analytics visible events collection');check(Analytics::collect($request)['accepted']===0,'server session deduplication');
 $request->set_header('origin','https://evil.example');check(is_wp_error(Analytics::collect($request)),'foreign analytics origin blocked');$request->set_header('origin',home_url());
-$request->set_header('origin','http://127.0.0.1:8098');check(is_wp_error(Analytics::collect($request)),'foreign origin port blocked');$request->set_header('origin',home_url());
+$request->set_header('origin',wp_parse_url(home_url(),PHP_URL_SCHEME).'://'.wp_parse_url(home_url(),PHP_URL_HOST).':'.((int)(wp_parse_url(home_url(),PHP_URL_PORT)?:80)+1));check(is_wp_error(Analytics::collect($request)),'foreign origin port blocked');$request->set_header('origin',home_url());
 $request->set_param('session','bad');check(is_wp_error(Analytics::collect($request)),'analytics token validation');
 wp_set_current_user($admin->ID);check(str_contains(Renderer::render($wid),'&quot;track&quot;:false'),'administrator previews excluded from analytics');
 Installer::deactivate();check(!wp_next_scheduled('grw_tick'),'deactivation clears cron');check(Locations::get($location)!==null,'deactivation retains data');Installer::activate();

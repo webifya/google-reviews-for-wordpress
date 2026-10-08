@@ -27,9 +27,7 @@ final class Renderer {
         <?php if ($c['show_subtitle']) { ?><p class="grw-subtitle"><?php echo esc_html($c['subtitle']); ?></p><?php } ?>
         <?php if ($c['show_heading']) { ?><h2 class="grw-heading"><?php echo esc_html($c['heading']); ?></h2><?php } ?>
         <?php if ($c['template']==='embed') {
-            foreach ($c['locations'] as $locid) { $loc=Locations::get($locid); $d=$loc?json_decode($loc['data'],true):[];
-                if (!empty($d['active']) && Security::embed($d['embed_url']??'')) { ?><iframe class="grw-map" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="<?php echo esc_attr($loc['name']); ?>" src="<?php echo esc_url($d['embed_url']); ?>" allowfullscreen></iframe><?php }
-            }
+            foreach ($c['locations'] as $locid) { echo MapDisplay::render($locid,(int)$c['map_height']); }
         } else {
             if ($c['show_summary'] && $rows) { $rated=array_filter(array_column($rows,'rating'),fn($v)=>$v!==null); ?><aside class="grw-summary grw-summary-<?php echo esc_attr($c['summary_position']); ?>"><?php if ($rated) { echo esc_html(number_format_i18n(array_sum($rated)/count($rated),1).' / 5 · '); } echo esc_html(sprintf(__('Based on %d displayed reviews (selected subset)', 'google-reviews-for-wordpress'),count($rows))); ?></aside><?php }
             if (!$rows) { ?><p><?php esc_html_e('No reviews available.', 'google-reviews-for-wordpress'); ?></p><?php }
@@ -44,6 +42,7 @@ final class Renderer {
             </div>
             <?php }
         }
+        if ($c['show_map'] && $c['template']!=='embed') { foreach ($c['locations'] as $locid) { echo MapDisplay::render($locid,(int)$c['map_height']); } }
         if ($c['show_maps']) { foreach ($c['locations'] as $locid) { $loc=Locations::get($locid); $d=$loc?json_decode($loc['data'],true):[]; if (!empty($d['maps_url'])) { ?><a class="grw-maps" data-event="maps" href="<?php echo esc_url($d['maps_url']); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html(sprintf(__('View %s on Google Maps', 'google-reviews-for-wordpress'),$loc['name'])); ?></a><?php } } }
         ?>
         </div></section>

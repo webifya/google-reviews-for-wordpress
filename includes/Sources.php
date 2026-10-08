@@ -15,7 +15,7 @@ final class LocalSource implements SourceAdapter {
 }
 final class Sources {
     public static function all(): array {
-        $providers=apply_filters('grw_source_adapters',['google_business'=>new GoogleBusinessSource(),'import'=>new LocalSource(__('Authorized import', 'google-reviews-for-wordpress')),'manual'=>new LocalSource(__('Manual testimonials', 'google-reviews-for-wordpress')),'local_json'=>new LocalJsonSource(),'embed'=>new LocalSource(__('Official Google Maps embed', 'google-reviews-for-wordpress'))]);
+        $providers=apply_filters('grw_source_adapters',['public'=>new LocalSource(__('Public Google Maps listing', 'google-reviews-for-wordpress')),'google_business'=>new GoogleBusinessSource(),'import'=>new LocalSource(__('Authorized import', 'google-reviews-for-wordpress')),'manual'=>new LocalSource(__('Manual testimonials', 'google-reviews-for-wordpress')),'local_json'=>new LocalJsonSource(),'embed'=>new LocalSource(__('Official Google Maps embed', 'google-reviews-for-wordpress'))]);
         return array_filter($providers,fn($p)=>$p instanceof SourceAdapter);
     }
     /** Network helper for optional adapters: exact trusted hosts supplied by code, never location input. */

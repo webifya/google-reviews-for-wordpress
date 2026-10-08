@@ -15,7 +15,7 @@ final class Security {
     public static function maps($value): string {
         $url = self::url($value); $p = wp_parse_url($url);
         if (!$p || !in_array(strtolower($p['host']??''), ['www.google.com','google.com','maps.google.com','maps.app.goo.gl','goo.gl'], true)) { return ''; }
-        if (($p['host']==='goo.gl' && !str_starts_with($p['path']??'', '/maps/')) || (in_array($p['host'],['www.google.com','google.com'],true) && !str_starts_with($p['path']??'','/maps'))) { return ''; }
+        if (($p['host']==='goo.gl' && !str_starts_with($p['path']??'', '/maps/')) || (in_array($p['host'],['www.google.com','google.com'],true) && !preg_match('~^/maps(?:/|$)~',$p['path']??''))) { return ''; }
         return $url;
     }
     /** Resolve official share redirects only; never read review HTML or infer ownership. */
@@ -32,9 +32,22 @@ final class Security {
         }
         return self::error('Too many share-link redirects. Copy the full listing URL manually.');
     }
+    /** Accept only a single official sharing iframe, discard all supplied markup. */
     public static function embed($value): string {
-        $url = self::url($value); $p = wp_parse_url($url);
-        return $p && !empty($p['host']) && $p['host'] === 'www.google.com' && ($p['path'] ?? '') === '/maps/embed' && str_starts_with($p['query'] ?? '', 'pb=') ? $url : '';
+        if (!is_string($value) || strlen($value)>16384) { return ''; }
+        $value=trim($value);
+        if (str_starts_with($value,'<')) {
+            if (!preg_match('~^<iframe\s[^<>]*>\s*</iframe\s*>$~is',$value) || preg_match('/(?:\son[a-z]+\s*=|\ssrcdoc\s*=)/i',$value)) { return ''; }
+            $tags=new \WP_HTML_Tag_Processor($value);
+            if (!$tags->next_tag('IFRAME')) { return ''; }
+            $value=$tags->get_attribute('src');
+            if (!is_string($value)) { return ''; }
+        }
+        $url=self::url(html_entity_decode($value,ENT_QUOTES|ENT_HTML5,'UTF-8')); $p=wp_parse_url($url);
+        if (!$p || ($p['host']??'')!=='www.google.com' || ($p['path']??'')!=='/maps/embed' || isset($p['fragment'])) { return ''; }
+        parse_str($p['query']??'',$query);
+        if (!is_string($query['pb']??null) || !str_starts_with($query['pb'],'!') || strlen($query['pb'])<5 || array_diff(array_keys($query),['pb','hl'])) { return ''; }
+        return $url;
     }
     public static function ids($input): array { return array_values(array_unique(array_filter(array_map(fn($id)=>is_scalar($id)&&preg_match('/^\d+$/',trim((string)$id))?absint($id):0, is_array($input) ? $input : (is_scalar($input)?explode(',', (string)$input):[]))))); }
     public static function error(string $message, int $status = 400): \WP_Error { return new \WP_Error('grw_invalid', $message, ['status'=>$status]); }
