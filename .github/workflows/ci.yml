@@ -47,6 +47,11 @@ jobs:
           unzip /tmp/google-reviews-for-wordpress-v1.2.0.zip -d /tmp/wordpress/wp-content/plugins
           GRW_WP_ROOT=/tmp/wordpress php tests/integration.php
           GRW_WP_ROOT=/tmp/wordpress php tests/phase3.php
+          curl -fsSL https://github.com/webifya/google-reviews-for-wordpress/releases/download/v1.1.0-rc.1/google-reviews-for-wordpress-v1.1.0.zip -o /tmp/grw-previous.zip
+          unzip -oq /tmp/grw-previous.zip -d /tmp/wordpress/wp-content/plugins
+          GRW_WP_ROOT=/tmp/wordpress GRW_UPGRADE_MODE=seed GRW_SNAPSHOT=/tmp/grw-upgrade.json php tests/upgrade.php
+          unzip -oq /tmp/google-reviews-for-wordpress-v1.2.0.zip -d /tmp/wordpress/wp-content/plugins
+          GRW_WP_ROOT=/tmp/wordpress GRW_UPGRADE_MODE=verify GRW_SNAPSHOT=/tmp/grw-upgrade.json php tests/upgrade.php
           GRW_WP_ROOT=/tmp/wordpress php tests/benchmark.php > /tmp/benchmark.json
       - uses: actions/upload-artifact@v4
         with:
