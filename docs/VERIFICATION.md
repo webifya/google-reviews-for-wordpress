@@ -8,12 +8,13 @@ Status: 1.0.0 candidate; final verification results below distinguish executed c
 - WordPress 7.1.3 with the official SQLite Database Integration drop-in: **54 integration assertions passed**.
 - A second fresh WordPress installation, plugin extracted from the generated installation ZIP: **54 assertions passed**.
 - Coverage: activation/table installation/idempotence, cron registration/deactivation, location creation/update, URL/embed validation, SSRF allowlist, Unicode imports, duplicate detection/stable-ID updates, invalid ratings/dates, filtering/order/moderation, multiple widgets, sanitized CSS, shortcode overrides, accurate subset summaries, authorized adapter sync, locks/retries/data preservation, local JSON feed updates/path checks, capability/REST isolation, analytics consent/collection/dedup/origin/token checks, CSV formula safety and uninstall retention/cleanup.
+- Chrome: expanded suite also covers autoplay, reduced motion, single-review navigation and touch pointer events. Admin browser checks cover all eight screens, saving/live styling, nonce enforcement, real visible-impression events, deduplication and complete guided onboarding.
 - Chrome, Firefox and WebKit: responsive screenshots and carousel interaction checks at 375, 768, 1024 and 1440 pixels. WebKit exercises the Safari rendering engine; the installed Safari app itself was not automated.
 - Default design visually inspected against the supplied reference. Composition matches gray section, centered titles, white rounded cards, raised avatars, stars and circular controls. Authorized-import attribution adds a footer; screenshot identities and verification marks were not copied.
 
 ## CI
 
-The repository includes MySQL 8 / PHP 8.1 and 8.4 / WordPress 6.4.7 and latest integration jobs, installation from the generated ZIP, three-engine browser checks and downloadable package artifacts. Do not treat these jobs as passed unless the linked GitHub run completed successfully. Local testing used SQLite, not MySQL or MariaDB.
+The first GitHub run executed all four MySQL 8 / PHP 8.1 and 8.4 / WordPress 6.4.7 and latest integration combinations successfully, installing from the generated ZIP. The final commit is separately rechecked. Browser CI exercises Chromium, Firefox and WebKit and emits screenshots. Local database testing used SQLite; MySQL testing ran in GitHub Actions. MariaDB and an actual cPanel deployment are not independently qualified.
 
 ## Limits and follow-up work
 

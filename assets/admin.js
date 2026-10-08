@@ -1,18 +1,18 @@
 (() => {
 'use strict';
 const app=document.getElementById('grw-admin-app'),cfg=window.GRW_ADMIN;if(!app)return;
-const t=text=>window.wp?.i18n?window.wp.i18n.__(text,'google-reviews-for-wordpress'):text;
+const translate=text=>window.wp?.i18n?window.wp.i18n.__(text,'google-reviews-for-wordpress'):text;
 let state,editId=0,reviewPage=1,filters={},previewTimer;
 const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e};
-const button=(text,fn,secondary=false)=>{const b=el('button',t(text),secondary?'button':'button button-primary');b.type='button';b.onclick=()=>Promise.resolve(fn()).catch(error);return b};
+const button=(text,fn,secondary=false)=>{const b=el('button',translate(text),secondary?'button':'button button-primary');b.type='button';b.onclick=()=>Promise.resolve().then(fn).catch(error);return b};
 const message=txt=>{let m=document.getElementById('grw-message');if(!m){m=el('div',undefined);m.id='grw-message';m.setAttribute('role','status');app.prepend(m)}m.textContent=txt};
 const error=e=>message(e.message||String(e));
 async function api(path,data){const [route,query]=path.split('?');const url=cfg.endpoint+route+(query?(cfg.endpoint.includes('?')?'&':'?')+query:'');const response=await fetch(url,{method:data?'POST':'GET',headers:{'Content-Type':'application/json','X-WP-Nonce':cfg.nonce},body:data?JSON.stringify(data):undefined});const value=await response.json();if(!response.ok)throw new Error(value.message||cfg.strings.error);return value}
 async function refresh(){state=await api('state?'+new URLSearchParams({page:reviewPage,...filters}));render()}
-function field(parent,key,label,value,type='text',options){const wrap=el('div',undefined,'field'),l=el('label',t(label)),input=el(options?'select':type==='textarea'?'textarea':'input');input.name=key;input.id='grw-'+key;l.htmlFor=input.id;if(options){options.forEach(([v,t])=>{const o=el('option',t);o.value=v;input.append(o)});input.value=value}else{if(input.tagName==='INPUT')input.type=type;if(type==='checkbox')input.checked=!!value;else input.value=value??''}wrap.append(l,input);parent.append(wrap);return input}
+function field(parent,key,label,value,type='text',options){const wrap=el('div',undefined,'field'),l=el('label',translate(label)),input=el(options?'select':type==='textarea'?'textarea':'input');input.name=key;input.id='grw-'+key;l.htmlFor=input.id;if(options){options.forEach(([v,t])=>{const o=el('option',t);o.value=v;input.append(o)});input.value=value}else{if(input.tagName==='INPUT')input.type=type;if(type==='checkbox')input.checked=!!value;else input.value=value??''}wrap.append(l,input);parent.append(wrap);return input}
 function values(form){const out={};form.querySelectorAll('input,select,textarea').forEach(i=>{out[i.name]=i.type==='checkbox'?i.checked:i.type==='number'?Number(i.value):i.value});return out}
-function panel(title){const p=el('section',undefined,'panel');if(title)p.append(el('h2',t(title)));app.append(p);return p}
-function table(parent,heads,rows){const wrap=el('div',undefined,'table-wrap'),t=el('table'),thead=el('thead'),tr=el('tr');heads.forEach(h=>tr.append(el('th',t(h))));thead.append(tr);t.append(thead);const body=el('tbody');rows.forEach(cells=>{const row=el('tr');cells.forEach(value=>{const td=el('td');td.append(value instanceof Node?value:document.createTextNode(String(value??'')));row.append(td)});body.append(row)});t.append(body);wrap.append(t);parent.append(wrap)}
+function panel(title){const p=el('section',undefined,'panel');if(title)p.append(el('h2',translate(title)));app.append(p);return p}
+function table(parent,heads,rows){const wrap=el('div',undefined,'table-wrap'),t=el('table'),thead=el('thead'),tr=el('tr');heads.forEach(h=>tr.append(el('th',translate(h))));thead.append(tr);t.append(thead);const body=el('tbody');rows.forEach(cells=>{const row=el('tr');cells.forEach(value=>{const td=el('td');td.append(value instanceof Node?value:document.createTextNode(String(value??'')));row.append(td)});body.append(row)});t.append(body);wrap.append(t);parent.append(wrap)}
 function download(name,content,type='application/json'){const url=URL.createObjectURL(new Blob([typeof content==='string'?content:JSON.stringify(content,null,2)],{type}));const a=el('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function csv(rows){if(!rows.length)return '';const keys=Object.keys(rows[0]);const cell=v=>'"'+String(v??'').replace(/^[=+\-@\t\r]/,"'$&").replaceAll('"','""')+'"';return [keys.map(cell).join(','),...rows.map(r=>keys.map(k=>cell(r[k])).join(','))].join('\r\n')}
 function locationOptions(){return state.locations.map(l=>[l.id,l.name])}

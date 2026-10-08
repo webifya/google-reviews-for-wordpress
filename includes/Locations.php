@@ -14,6 +14,7 @@ final class Locations {
         if (!isset(Sources::all()[$provider])) { return Security::error(__('Unknown provider.', 'google-reviews-for-wordpress')); }
         $data = ['provider'=>$provider,'active'=>!empty($input['active']),'frequency'=>in_array((int)($input['frequency']??86400),[0,43200,86400,172800,604800],true)?(int)($input['frequency']??86400):86400];
         foreach (['business_name','address','place_id','cid'] as $key) { $data[$key] = sanitize_text_field($input[$key] ?? ''); }
+        if ($data['cid'] && !preg_match('/^\d{1,24}$/',$data['cid'])) { return Security::error(__('CID must be numeric.', 'google-reviews-for-wordpress')); }
         if ($data['place_id'] && !preg_match('/^[A-Za-z0-9_-]{5,200}$/', $data['place_id'])) { return Security::error(__('Invalid Place ID.', 'google-reviews-for-wordpress')); }
         foreach (['website','logo'] as $key) { $data[$key] = Security::url($input[$key]??''); }
         $data['attachment_id'] = absint($input['attachment_id']??0);
