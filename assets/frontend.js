@@ -59,7 +59,7 @@ function initialize(root){
  on(document,'visibilitychange',start);on(motion,'change',start);watch(new ResizeObserver(()=>{clearTimeout(resizeTimer);resizeTimer=later(rebuild,80)}),viewport);rebuild();
 }
 const dispose=(scope)=>Array.from(instances.entries()).forEach(([root,fn])=>{if(root===scope||scope.contains(root))fn()});
-async function liveWidget(node){if(node.dataset.loading)return;node.dataset.loading='1';const data=JSON.parse(node.dataset.grwLive);try{const response=await fetch(data.endpoint,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(!response.ok)return;const result=await response.json();if(!node.isConnected)return;node.innerHTML=result.html;window.GRW.init(node)}catch{}}
+async function liveWidget(node){if(node.dataset.loading)return;node.dataset.loading='1';const data=JSON.parse(node.dataset.grwLive);try{const response=await fetch(data.endpoint,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(!response.ok)throw new Error('Live reviews unavailable');const result=await response.json();if(!node.isConnected)return;node.innerHTML=result.html;window.GRW.init(node)}catch{if(node.isConnected)node.textContent=data.empty||''}}
 window.GRW={init:(scope=document)=>{scope.querySelectorAll('[data-grw]').forEach(initialize);scope.querySelectorAll('[data-grw-live]').forEach(liveWidget)},dispose,count:()=>instances.size};
 new MutationObserver(()=>{for(const [root,fn] of instances)if(!root.isConnected)fn()}).observe(document.documentElement,{childList:true,subtree:true});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>window.GRW.init());else window.GRW.init();
