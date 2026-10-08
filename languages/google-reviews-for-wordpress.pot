@@ -1,0 +1,740 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Google Reviews for WordPress 1.0.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"X-Domain: google-reviews-for-wordpress\n"
+
+msgid "%d out of 5 stars"
+msgstr ""
+
+msgid "%s ago"
+msgstr ""
+
+msgid "Above"
+msgstr ""
+
+msgid "Action"
+msgstr ""
+
+msgid "Actions"
+msgstr ""
+
+msgid "Active location"
+msgstr ""
+
+msgid "Adapter"
+msgstr ""
+
+msgid "Add business location"
+msgstr ""
+
+msgid "Add location"
+msgstr ""
+
+msgid "Add manual testimonial"
+msgstr ""
+
+msgid "Add your own authorized testimonials in All Reviews, or configure your trusted adapter integration. You can publish an empty widget and add reviews later."
+msgstr ""
+
+msgid "All"
+msgstr ""
+
+msgid "All design options and live preview are available in Review Widgets after setup."
+msgstr ""
+
+msgid "Analytics"
+msgstr ""
+
+msgid "Analytics retention (days, 1–730)"
+msgstr ""
+
+msgid "Apply"
+msgstr ""
+
+msgid "ArrowLeft"
+msgstr ""
+
+msgid "ArrowRight"
+msgstr ""
+
+msgid "Authorized CSV / JSON import"
+msgstr ""
+
+msgid "Authorized CSV or JSON"
+msgstr ""
+
+msgid "Authorized JSON feed: media attachment ID"
+msgstr ""
+
+msgid "Authorized import"
+msgstr ""
+
+msgid "Authorized local JSON feed"
+msgstr ""
+
+msgid "Back"
+msgstr ""
+
+msgid "Based on %d displayed reviews (selected subset)"
+msgstr ""
+
+msgid "Business"
+msgstr ""
+
+msgid "Business locations"
+msgstr ""
+
+msgid "Business response"
+msgstr ""
+
+msgid "Cache cleared."
+msgstr ""
+
+msgid "Card color"
+msgstr ""
+
+msgid "Center"
+msgstr ""
+
+msgid "Choose a CSV/JSON file under 10 MB."
+msgstr ""
+
+msgid "Choose settings JSON under 1 MB"
+msgstr ""
+
+msgid "Choose template"
+msgstr ""
+
+msgid "Classic Carousel"
+msgstr ""
+
+msgid "Classic Google Reviews Carousel"
+msgstr ""
+
+msgid "Clear plugin cache"
+msgstr ""
+
+msgid "Close"
+msgstr ""
+
+msgid "Comma-separated location IDs. Empty means all active locations. "
+msgstr ""
+
+msgid "Comma-separated saved review IDs; ordering is honored with manual sort."
+msgstr ""
+
+msgid "Compact Review Slider"
+msgstr ""
+
+msgid "Compact Slider"
+msgstr ""
+
+msgid "Confirm publishing permission."
+msgstr ""
+
+msgid "Connect or import authorized reviews"
+msgstr ""
+
+msgid "Content"
+msgstr ""
+
+msgid "Content-Type"
+msgstr ""
+
+msgid "Copy shortcode"
+msgstr ""
+
+msgid "Could not save location."
+msgstr ""
+
+msgid "Create a location, choose a permitted source, and publish a review widget. No fabricated reviews are added."
+msgstr ""
+
+msgid "Create and customize widget"
+msgstr ""
+
+msgid "Create widget"
+msgstr ""
+
+msgid "Custom"
+msgstr ""
+
+msgid "Customize design"
+msgstr ""
+
+msgid "DOMContentLoaded"
+msgstr ""
+
+msgid "Daily impressions"
+msgstr ""
+
+msgid "Dark Premium"
+msgstr ""
+
+msgid "Day"
+msgstr ""
+
+msgid "Delete"
+msgstr ""
+
+msgid "Delete plugin data on uninstall (deactivation preserves data)"
+msgstr ""
+
+msgid "Delete this saved review?"
+msgstr ""
+
+msgid "Download safe diagnostic report"
+msgstr ""
+
+msgid "Duplicate"
+msgstr ""
+
+msgid "Edit"
+msgstr ""
+
+msgid "Edit location"
+msgstr ""
+
+msgid "Edit manual testimonial"
+msgstr ""
+
+msgid "Enable JavaScript to use the visual editor."
+msgstr ""
+
+msgid "Enable analytics"
+msgstr ""
+
+msgid "Engagement rate"
+msgstr ""
+
+msgid "Enter a location name."
+msgstr ""
+
+msgid "Estimated unique"
+msgstr ""
+
+msgid "Expand in card"
+msgstr ""
+
+msgid "Export CSV"
+msgstr ""
+
+msgid "Export saved reviews as CSV"
+msgstr ""
+
+msgid "Export settings"
+msgstr ""
+
+msgid "Feature / unfeature"
+msgstr ""
+
+msgid "Featured"
+msgstr ""
+
+msgid "Featured first"
+msgstr ""
+
+msgid "File (CSV or JSON; 10 MB per upload)"
+msgstr ""
+
+msgid "Filter"
+msgstr ""
+
+msgid "Finish setup"
+msgstr ""
+
+msgid "First-run setup"
+msgstr ""
+
+msgid "From"
+msgstr ""
+
+msgid "Full text"
+msgstr ""
+
+msgid "GET"
+msgstr ""
+
+msgid "Generate shortcode"
+msgstr ""
+
+msgid "Google Reviews"
+msgstr ""
+
+msgid "Google Reviews Widget"
+msgstr ""
+
+msgid "Guided setup · Step "
+msgstr ""
+
+msgid "Heading"
+msgstr ""
+
+msgid "Hidden"
+msgstr ""
+
+msgid "Hide / show"
+msgstr ""
+
+msgid "Highest"
+msgstr ""
+
+msgid "Highest rating"
+msgstr ""
+
+msgid "I have permission to store and republish these reviews."
+msgstr ""
+
+msgid "I have permission to store and republish this content."
+msgstr ""
+
+msgid "I have publishing permission."
+msgstr ""
+
+msgid "I have redistribution rights to this local feed."
+msgstr ""
+
+msgid "I have rights to redistribute the feed contents."
+msgstr ""
+
+msgid "INPUT"
+msgstr ""
+
+msgid "Import authorized reviews"
+msgstr ""
+
+msgid "Import file"
+msgstr ""
+
+msgid "Import settings"
+msgstr ""
+
+msgid "Import settings JSON"
+msgstr ""
+
+msgid "Impressions"
+msgstr ""
+
+msgid "Interactions · 30 days"
+msgstr ""
+
+msgid "Internal location name"
+msgstr ""
+
+msgid "Invalid Place ID."
+msgstr ""
+
+msgid "Invalid import rows: "
+msgstr ""
+
+msgid "JSON media attachment ID"
+msgstr ""
+
+msgid "JSON must be an array."
+msgstr ""
+
+msgid "Last 30 days"
+msgstr ""
+
+msgid "Last 7 days"
+msgstr ""
+
+msgid "Last 90 days"
+msgstr ""
+
+msgid "Last attempt"
+msgstr ""
+
+msgid "Last success"
+msgstr ""
+
+msgid "Last successful sync"
+msgstr ""
+
+msgid "Latest"
+msgstr ""
+
+msgid "Latest first"
+msgstr ""
+
+msgid "Left"
+msgstr ""
+
+msgid "Left aligned"
+msgstr ""
+
+msgid "Location"
+msgstr ""
+
+msgid "Location name is required."
+msgstr ""
+
+msgid "Location not found."
+msgstr ""
+
+msgid "Location saved."
+msgstr ""
+
+msgid "Locations"
+msgstr ""
+
+msgid "Log"
+msgstr ""
+
+msgid "Lowest"
+msgstr ""
+
+msgid "Lowest rating"
+msgstr ""
+
+msgid "Manual"
+msgstr ""
+
+msgid "Manual only"
+msgstr ""
+
+msgid "Manual testimonial"
+msgstr ""
+
+msgid "Manual testimonial saved."
+msgstr ""
+
+msgid "Manual testimonials"
+msgstr ""
+
+msgid "Manually selected order"
+msgstr ""
+
+msgid "Maps URLs and identifiers are saved for manual business confirmation. Short links are not fetched. Embed URL: paste only the src URL from the official Google Maps iframe."
+msgstr ""
+
+msgid "Maximum 10 MB"
+msgstr ""
+
+msgid "Minimum rating"
+msgstr ""
+
+msgid "Modal"
+msgstr ""
+
+msgid "Modern Minimal"
+msgstr ""
+
+msgid "Month"
+msgstr ""
+
+msgid "Most-viewed widgets · last 30 days"
+msgstr ""
+
+msgid "My reviews"
+msgstr ""
+
+msgid "Name"
+msgstr ""
+
+msgid "Navigation"
+msgstr ""
+
+msgid "Never"
+msgstr ""
+
+msgid "Next"
+msgstr ""
+
+msgid "Next page"
+msgstr ""
+
+msgid "Next scheduler check: "
+msgstr ""
+
+msgid "Next sync"
+msgstr ""
+
+msgid "No reviews available."
+msgstr ""
+
+msgid "Not scheduled"
+msgstr ""
+
+msgid "Official Google Maps embed"
+msgstr ""
+
+msgid "Official embeds keep Google’s presentation. They cannot provide custom review cards."
+msgstr ""
+
+msgid "Official iframe src URL"
+msgstr ""
+
+msgid "Oldest"
+msgstr ""
+
+msgid "Oldest first"
+msgstr ""
+
+msgid "Open a new page"
+msgstr ""
+
+msgid "Order"
+msgstr ""
+
+msgid "Original date"
+msgstr ""
+
+msgid "Outbound rate"
+msgstr ""
+
+msgid "POST"
+msgstr ""
+
+msgid "Page "
+msgstr ""
+
+msgid "Paste the iframe src from Google Maps Share → Embed a map."
+msgstr ""
+
+msgid "Paste the shortcode into a page or add the Google Reviews Widget block and select your widget. Use a full-width section for the classic composition."
+msgstr ""
+
+msgid "Previous"
+msgstr ""
+
+msgid "Previous page"
+msgstr ""
+
+msgid "Privacy and data retention"
+msgstr ""
+
+msgid "Privacy settings imported; existing widgets preserved."
+msgstr ""
+
+msgid "Provider"
+msgstr ""
+
+msgid "Publish widget"
+msgstr ""
+
+msgid "Random"
+msgstr ""
+
+msgid "Range"
+msgstr ""
+
+msgid "Rating"
+msgstr ""
+
+msgid "Rating (leave empty if unknown)"
+msgstr ""
+
+msgid "Rating must be an integer from 1 to 5 or empty."
+msgstr ""
+
+msgid "Read less"
+msgstr ""
+
+msgid "Read more"
+msgstr ""
+
+msgid "Repair tables / indexes / scheduler"
+msgstr ""
+
+msgid "Request failed"
+msgstr ""
+
+msgid "Require explicit analytics consent"
+msgstr ""
+
+msgid "Reset to default"
+msgstr ""
+
+msgid "Review"
+msgstr ""
+
+msgid "Review / source"
+msgstr ""
+
+msgid "Review Grid"
+msgstr ""
+
+msgid "Review management"
+msgstr ""
+
+msgid "Review source"
+msgstr ""
+
+msgid "Review widgets"
+msgstr ""
+
+msgid "Reviewer"
+msgstr ""
+
+msgid "Reviewer and content are required."
+msgstr ""
+
+msgid "Right"
+msgstr ""
+
+msgid "Save"
+msgstr ""
+
+msgid "Save first"
+msgstr ""
+
+msgid "Save location"
+msgstr ""
+
+msgid "Save settings"
+msgstr ""
+
+msgid "Save testimonial"
+msgstr ""
+
+msgid "Save the widget to preview your real imported reviews."
+msgstr ""
+
+msgid "Save widget"
+msgstr ""
+
+msgid "Saved review widget"
+msgstr ""
+
+msgid "Saved reviews"
+msgstr ""
+
+msgid "Saved subset rating"
+msgstr ""
+
+msgid "Search"
+msgstr ""
+
+msgid "Section color"
+msgstr ""
+
+msgid "Select a JSON media attachment and confirm redistribution rights."
+msgstr ""
+
+msgid "Select a widget"
+msgstr ""
+
+msgid "Select review source"
+msgstr ""
+
+msgid "Settings saved."
+msgstr ""
+
+msgid "Setup complete."
+msgstr ""
+
+msgid "Shortcode"
+msgstr ""
+
+msgid "Source"
+msgstr ""
+
+msgid "Source status"
+msgstr ""
+
+msgid "Source transparency"
+msgstr ""
+
+msgid "Status"
+msgstr ""
+
+msgid "Subtitle"
+msgstr ""
+
+msgid "Summary card"
+msgstr ""
+
+msgid "Sync all permitted locations"
+msgstr ""
+
+msgid "Sync frequency (authorized adapters only)"
+msgstr ""
+
+msgid "Sync now"
+msgstr ""
+
+msgid "Synchronization"
+msgstr ""
+
+msgid "Template"
+msgstr ""
+
+msgid "Test connection"
+msgstr ""
+
+msgid "Testimonial"
+msgstr ""
+
+msgid "This source cannot retrieve individual Google reviews. Use authorized imports or register a permitted adapter."
+msgstr ""
+
+msgid "Time"
+msgstr ""
+
+msgid "To"
+msgstr ""
+
+msgid "Today"
+msgstr ""
+
+msgid "Tools & Diagnostics"
+msgstr ""
+
+msgid "Unknown location."
+msgstr ""
+
+msgid "Unknown provider."
+msgstr ""
+
+msgid "Use a JSON array"
+msgstr ""
+
+msgid "Use a supported HTTPS Google Maps URL."
+msgstr ""
+
+msgid "Use an ISO review date."
+msgstr ""
+
+msgid "View %s on Google Maps"
+msgstr ""
+
+msgid "View original"
+msgstr ""
+
+msgid "Views"
+msgstr ""
+
+msgid "Views · selected 30 days"
+msgstr ""
+
+msgid "Visual widget editor"
+msgstr ""
+
+msgid "Weekly"
+msgstr ""
+
+msgid "Welcome"
+msgstr ""
+
+msgid "Widget"
+msgstr ""
+
+msgid "Widget name"
+msgstr ""
+
+msgid "Widgets"
+msgstr ""
+
+msgid "X-WP-Nonce"
+msgstr ""
+
+msgid "Yesterday"
+msgstr ""
+
+msgid "carousel"
+msgstr ""
+
+msgid "of"
+msgstr ""
