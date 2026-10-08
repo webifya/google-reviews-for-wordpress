@@ -20,6 +20,8 @@ final class LocalSource implements SourceAdapter {
     public function fetch(array $location, ?string $cursor) { return Security::error(__('This source cannot retrieve individual Google reviews. Use authorized imports or register a permitted adapter.', 'google-reviews-for-wordpress')); }
 }
 final class Sources {
+    private static ?array $scopeLocations=null;
+    public static function clear_scope(): void { self::$scopeLocations=null; }
     public static function all(): array {
         $providers=apply_filters('grw_source_adapters',['public'=>new LocalSource(__('Public Google Maps listing', 'google-reviews-for-wordpress')),'google_places'=>new PlacesSource(),'google_business'=>new GoogleBusinessSource(),'import'=>new LocalSource(__('Authorized import', 'google-reviews-for-wordpress')),'manual'=>new LocalSource(__('Manual testimonials', 'google-reviews-for-wordpress')),'local_json'=>new LocalJsonSource(),'embed'=>new LocalSource(__('Official Google Maps embed', 'google-reviews-for-wordpress'))]);
         return array_filter($providers,fn($p)=>$p instanceof SourceAdapter);
@@ -32,20 +34,57 @@ final class Sources {
         if ($id==='google_business') { return array_merge($base,['ownership'=>true,'individual_reviews'=>true,'maximum'=>'50 per page; paginated owner access','history'=>true,'requirements'=>'Eligible approved project, verified managed business and OAuth','storage'=>'owner_only_15_minutes','license_reference'=>'https://developers.google.com/my-business/content/policies']); }
         if ($p instanceof PermanentReviewProvider) {
             $policy=$p->policy();
-            if (!empty($policy['permanent_storage']) && !empty($policy['public_display']) && Security::url($policy['license_reference']??'')) { return array_merge($base,array_intersect_key($policy,$base),['individual_reviews'=>true,'daily'=>$p->supports_sync(),'public_display'=>true,'storage'=>'licensed_permanent']); }
+            if (($policy['permanent_storage']??false)===true && ($policy['public_display']??false)===true && Security::url($policy['license_reference']??'')) { return array_merge($base,array_intersect_key($policy,$base),['individual_reviews'=>true,'daily'=>$p->supports_sync(),'public_display'=>true,'storage'=>'licensed_permanent']); }
         }
         return array_merge($base,['storage'=>'legacy','requirements'=>'Retained legacy source; no Google review access is implied']);
     }
     public static function eligible(array $location): bool {
         $d=json_decode($location['data'],true)?:[]; $p=self::all()[$d['provider']??'']??null;
-        return !empty($d['active']) && $p && $p->supports_sync() && ($d['provider']??'')!=='google_business';
+        return !empty($d['active']) && $p && $p->supports_sync() && ($d['provider']??'')!=='google_business' && (!($p instanceof PermanentReviewProvider) || self::capabilities($d['provider'])['storage']==='licensed_permanent');
     }
-    private static function has_rows(array $location): bool { global $wpdb; return (bool)$wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}grw_reviews WHERE location_id=%d AND source_type='licensed' LIMIT 1",$location['id'])); }
-    public static function connection(array $location): array {
+    /** Source identity excludes appearance/scheduling; provider-specific identity fields remain included. */
+    public static function binding(array $location): string {
+        $d=json_decode($location['data'],true)?:[];
+        foreach (['active','frequency','website','logo','listing_confirmed','maps_url','reviews_url','embed_url','connection_mode','listing_status','map_status','review_source_status'] as $k) { unset($d[$k]); }
+        if (!empty($d['place_id']) || !empty($d['cid']) || !empty($d['google_parent'])) { unset($d['business_name'],$d['address'],$d['country']); }
+        ksort($d); return hash('sha256',wp_json_encode($d));
+    }
+    /** Fail closed when a license or business identity changes. Retained rows are never deleted or relabeled. */
+    public static function scope(array $ids=[]): array {
+        $parts=[]; $args=[]; $grants=get_option('grw_license_grants',[]);
+        $locations=self::$scopeLocations??=Locations::all();
+        foreach ($locations as $l) {
+            if ($ids && !in_array((int)$l['id'],$ids,true)) { continue; }
+            $d=json_decode($l['data'],true)?:[]; $provider=$d['provider']??''; $cap=self::capabilities($provider); $grant=$grants[$l['id']][$provider]??[]; $binding=self::binding($l);
+            if (empty($l['active']) || $cap['storage']!=='licensed_permanent' || ($grant['reference']??'')!==$cap['license_reference'] || ($grant['binding']??'')!==$binding) { continue; }
+            $parts[]='(r.location_id=%d AND r.provider_id=%s AND r.source_binding=%s AND r.license_reference=%s)'; array_push($args,(int)$l['id'],$provider,$binding,$cap['license_reference']);
+        }
+        return ['where'=>$parts?'('.implode(' OR ',$parts).')':'0=1','args'=>$args];
+    }
+    private static function row_count(array $location): int {
+        global $wpdb; $scope=self::scope([(int)$location['id']]);
+        $sql="SELECT COUNT(*) FROM {$wpdb->prefix}grw_reviews r WHERE r.source_type='licensed' AND ".$scope['where'];
+        return (int)$wpdb->get_var($scope['args']?$wpdb->prepare($sql,...$scope['args']):$sql);
+    }
+    public static function error_message(string $code): string {
+        return match ($code) {
+            'provider_auth'=>'Provider credentials are missing or expired. Reconnect the source.',
+            'provider_rate_limit'=>'The provider request limit was reached. Synchronization will retry later.',
+            'provider_quota'=>'The provider quota is exhausted. Check the selected plan and usage.',
+            'provider_network'=>'The provider could not be reached. Synchronization will retry later.',
+            'provider_identity'=>'The returned reviews do not match this business. Check the connection.',
+            'provider_license'=>'Storage or display permission is unavailable. Check the provider agreement.',
+            'invalid_provider_response'=>'The provider returned unusable review data. Check the connection.',
+            default=>'Review retrieval failed. Check the source connection and retry.',
+        };
+    }
+    public static function connection(array $location,?int $accessible=null): array {
         $d=json_decode($location['data'],true)?:[]; $id=$d['provider']??'public'; $cap=self::capabilities($id);
         $validation=get_option('grw_places_validation_'.$location['id'],[]);
-        $verified=$id==='google_places'?Places::status()['configured']&&!empty($validation['has_reviews']):($cap['daily']&&!empty($location['last_success'])&&$location['status']==='last_sync_successful'&&self::has_rows($location));
-        return ['capabilities'=>$cap,'connected'=>$verified,'eligible_daily'=>$cap['daily']&&self::eligible($location),'status'=>$id==='google_places'?($verified?'Connected — live selection':(Places::status()['configured']?'Test review retrieval':'API key required')):($cap['daily']?($verified?'Connected — Daily Sync Active':'Review connection requires validation'):($id==='google_business'?'Owner dashboard only':'Review Retrieval Unavailable')),'last_validation'=>$id==='google_places'?($validation['validated_at']??null):$location['last_success'],'last_counts'=>get_option('grw_sync_counts_'.$location['id'],[])];
+        $count=$cap['storage']==='licensed_permanent'?($accessible??self::row_count($location)):0; $scheduled=$cap['daily']&&self::eligible($location)&&!empty($d['frequency'])&&!empty($location['next_sync']);
+        $error=get_option('grw_sync_error_'.$location['id'],[]); if ($error) { $error['message']=self::error_message($error['code']??''); }
+        $verified=$id==='google_places'?Places::status()['configured']&&!empty($validation['has_reviews']):($cap['daily']&&!empty($location['last_success'])&&$location['status']==='last_sync_successful'&&$count>0);
+        return ['capabilities'=>$cap,'connected'=>$verified,'accessible_count'=>$id==='google_places'?($validation['retrieved_count']??null):$count,'storage_label'=>$cap['storage']==='request_only'?'Live display only':($cap['storage']==='licensed_permanent'?'Licensed stored collection':'Retained content'),'daily_active'=>$verified&&$scheduled&&($d['frequency']??0)===86400,'scheduled_active'=>$verified&&$scheduled,'frequency'=>$d['frequency']??259200,'eligible_daily'=>$cap['daily']&&self::eligible($location),'status'=>$id==='google_places'?($verified?'Connected — live selection':(Places::status()['configured']?'Test review retrieval':'API key required')):($cap['daily']?($verified?($scheduled&&($d['frequency']??0)===86400?'Connected — Daily Sync Active':($scheduled?'Connected — Every '.((int)$d['frequency']/86400).' days':'Connected — Manual Sync Only')):'Review connection requires validation'):($id==='google_business'?'Owner dashboard only':'Review Retrieval Unavailable')),'last_validation'=>$id==='google_places'?($validation['validated_at']??null):$location['last_success'],'last_error'=>$error,'last_counts'=>get_option('grw_sync_counts_'.$location['id'],[])];
     }
     /** Network helper for optional adapters: exact trusted hosts supplied by code, never location input. */
     public static function request(string $url,array $trusted_hosts) {

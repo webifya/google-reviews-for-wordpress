@@ -15,7 +15,7 @@ final class Locations {
         if (!$name) { return Security::error(__('Location name is required.', 'google-reviews-for-wordpress')); }
         $provider = sanitize_key($input['provider'] ?? 'public');
         if (!isset(Sources::all()[$provider])) { return Security::error(__('Unknown provider.', 'google-reviews-for-wordpress')); }
-        $data = ['provider'=>$provider,'active'=>!array_key_exists('active',$input)||!empty($input['active']),'frequency'=>in_array((int)($input['frequency']??86400),[0,43200,86400,172800,604800],true)?(int)($input['frequency']??86400):86400];
+        $data = ['provider'=>$provider,'active'=>!array_key_exists('active',$input)||!empty($input['active']),'frequency'=>in_array((int)($input['frequency']??259200),[0,43200,86400,172800,259200,432000,604800],true)?(int)($input['frequency']??259200):259200];
         foreach (['business_name','address','country','place_id','cid','google_parent'] as $key) { $data[$key] = sanitize_text_field($input[$key] ?? ''); }
         if ($provider==='google_business' && (!preg_match('/^accounts\/\d+\/locations\/\d+$/',$data['google_parent']) || empty($input['identity_confirmed']))) { return Security::error('Select your owned business and confirm its identity'); }
         $data['identity_confirmed']=!empty($input['identity_confirmed']);
@@ -41,12 +41,18 @@ final class Locations {
         $data['map_status']=$data['embed_url']?'configured':'not_configured';
         $data['review_source_status']=$adapter->supports_sync()?'configured':($provider==='public'||$provider==='embed'?'unavailable':'manual_import');
         $status = $adapter->supports_sync() ? 'action_required' : ($provider === 'embed' ? 'unsupported_source' : 'manual_import_only');
-        $can_schedule=$adapter->supports_sync() && $provider!=='google_business';
+        $binding=Sources::binding(['data'=>wp_json_encode($data)]); $same_binding=$old && Sources::binding($old)===$binding;
+        $grant=get_option('grw_license_grants',[])[$id][$provider]??[]; $cap=Sources::capabilities($provider);
+        $validated=!($adapter instanceof PermanentReviewProvider) || ($same_binding && !empty($old['last_success']) && ($grant['binding']??'')===$binding && ($grant['reference']??'')===$cap['license_reference']);
+        $can_schedule=$adapter->supports_sync() && $provider!=='google_business' && $validated && (!($adapter instanceof PermanentReviewProvider) || $cap['storage']==='licensed_permanent');
         $row=['name'=>$name,'active'=>$data['active']?1:0,'data'=>wp_json_encode($data),'status'=>$status,'next_sync'=>$can_schedule && $data['active'] && $data['frequency'] ? time()+$data['frequency']:0];
         if ($unchanged || ($old && array_intersect_key($previous,array_flip(['provider','active','frequency','attachment_id','authorized','google_parent']))===array_intersect_key($data,array_flip(['provider','active','frequency','attachment_id','authorized','google_parent'])))) { $row['status']=$old['status']; $row['next_sync']=$old['next_sync']; }
+        if ($same_binding && $validated && $old['status']==='last_sync_successful') { $row['status']=$old['status']; }
+        if ($adapter instanceof PermanentReviewProvider && !$validated) { $row['status']='action_required'; $row['next_sync']=0; }
         if ($old && array_intersect_key($previous,array_flip(['provider','attachment_id','google_parent']))!==array_intersect_key($data,array_flip(['provider','attachment_id','google_parent']))) { delete_option('grw_cursor_'.$id); }
         $ok = $id ? $wpdb->update($wpdb->prefix.'grw_locations',$row,['id'=>$id]) : $wpdb->insert($wpdb->prefix.'grw_locations',$row);
          $saved_id=$id ?: (int)$wpdb->insert_id;
+        if ($old && Sources::binding($old)!==Sources::binding(['data'=>wp_json_encode($data)])) { delete_option('grw_cursor_'.$id); delete_option('grw_sync_progress_'.$id); delete_option('grw_sync_counts_'.$id); delete_option('grw_sync_error_'.$id); }
         if ($old && (($previous['place_id']??'')!==$data['place_id'] || ($previous['provider']??'')!==$provider)) { delete_option('grw_places_validation_'.$id); }
         Cache::invalidate();
         return $ok === false ? Security::error(__('Could not save location.', 'google-reviews-for-wordpress'),500) :  $saved_id;

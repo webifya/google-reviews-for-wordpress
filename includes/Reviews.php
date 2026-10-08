@@ -2,7 +2,7 @@
 namespace Webifya\GRW;
 if (!defined('ABSPATH')) { exit; }
 final class Reviews {
-    public static function normalize(array $r, int $location, string $type='import',bool $validated=false,bool $verbatim=false) {
+    public static function normalize(array $r, int $location, string $type='import',bool $validated=false,bool $verbatim=false,array $provenance=[]) {
         if (!$validated && !Locations::get($location)) { return Security::error(__('Unknown location.', 'google-reviews-for-wordpress')); }
         foreach ($r as $v) { if ($v!==null && !is_scalar($v)) { return Security::error('Review fields must be scalar values'); } }
         $name=sanitize_text_field($r['reviewer']??$r['reviewer_name']??''); $raw=(string)($r['content']??$r['review_text']??''); $text=$verbatim?$raw:sanitize_textarea_field($raw);
@@ -18,28 +18,32 @@ final class Reviews {
         if ($date && strlen($date)>10 && ((int)substr($date,11,2)>23 || (int)substr($date,14,2)>59 || (int)substr($date,17,2)>59)) { return Security::error('Invalid review time'); }
         $external=sanitize_text_field($r['external_id']??$r['review_id']??''); $source=$type==='manual'?'Authorized import':sanitize_text_field($r['source_name']??'Authorized import');
         $link=Security::url($r['permalink']??$r['review_permalink']??'');
-        $identity=hash('sha256',wp_json_encode([$location,$type,$source,$external ?: ($link ?: [$name,$parsed,$text])]));
-        return ['location_id'=>$location,'identity'=>$identity,'external_id'=>$external,'reviewer'=>$name,'avatar'=>Security::url($r['avatar']??$r['reviewer_profile_image_url']??''),'rating'=>$rating===null?null:(int)$rating,'content'=>$text,'review_date'=>$parsed,'permalink'=>$link,'source_name'=>$type==='manual'?'Manual testimonial':$source,'source_url'=>Security::url($r['source_url']??''),'source_type'=>$type,'response'=>sanitize_textarea_field($r['response']??$r['business_response']??''),'content_hash'=>hash('sha256',wp_json_encode([$name,$text,$rating,$parsed,$r['response']??$r['business_response']??'',Security::url($r['avatar']??$r['reviewer_profile_image_url']??''),$link,Security::url($r['source_url']??'')]))];
+        if ($type==='licensed' && (!$external || strlen($external)>190)) { return Security::error('A bounded stable provider review ID is required'); }
+        $identityParts=[$location,$type,$source,$external ?: ($link ?: [$name,$parsed,$text])];
+        if ($provenance) { $identityParts=[$location,$type,[$provenance['provider_id']??'',$provenance['source_binding']??''],$external]; }
+        $identity=hash('sha256',wp_json_encode($identityParts));
+        return ['provider_id'=>sanitize_key($provenance['provider_id']??''),'source_binding'=>$provenance['source_binding']??'','license_reference'=>Security::url($provenance['license_reference']??''),'location_id'=>$location,'identity'=>$identity,'external_id'=>$external,'reviewer'=>$name,'avatar'=>Security::url($r['avatar']??$r['reviewer_profile_image_url']??''),'rating'=>$rating===null?null:(int)$rating,'content'=>$text,'review_date'=>$parsed,'permalink'=>$link,'source_name'=>$type==='manual'?'Manual testimonial':$source,'source_url'=>Security::url($r['source_url']??''),'source_type'=>$type,'response'=>sanitize_textarea_field($r['response']??$r['business_response']??''),'content_hash'=>hash('sha256',wp_json_encode([$name,$text,$rating,$parsed,$r['response']??$r['business_response']??'',Security::url($r['avatar']??$r['reviewer_profile_image_url']??''),$link,Security::url($r['source_url']??''),$source,Security::url($provenance['license_reference']??'')]))];
     }
-    public static function import(array $rows,int $location,string $type='import'): array {
-        global $wpdb; $result=['added'=>0,'updated'=>0,'unchanged'=>0,'errors'=>[]]; $table=$wpdb->prefix.'grw_reviews';
+    public static function import(array $rows,int $location,string $type='import',array $provenance=[]): array {
+        global $wpdb; $result=['added'=>0,'updated'=>0,'unchanged'=>0,'errors'=>[]]; $table=$wpdb->prefix.'grw_reviews'; $unchanged=[]; $synced=current_time('mysql',true);
         if (!Locations::get($location)) { $result['errors'][]=['row'=>0,'message'=>'Unknown location']; return $result; }
         foreach ($rows as $i=>$r) {
             if (!is_array($r)) { $result['errors'][]=['row'=>$i+1,'message'=>'Invalid row']; continue; }
-            $data=self::normalize($r,$location,$type,true,$type==='licensed');
+            $data=self::normalize($r,$location,$type,true,$type==='licensed',$provenance);
             if (is_wp_error($data)) { $result['errors'][]=['row'=>$i+1,'message'=>$data->get_error_message()]; continue; }
             $old=$wpdb->get_row($wpdb->prepare("SELECT id,content_hash FROM $table WHERE identity=%s",$data['identity']),ARRAY_A);
-            $data['updated_at']=current_time('mysql',true);
-            if ($old && hash_equals($old['content_hash'],$data['content_hash'])) { $result['unchanged']++; continue; }
+            $data['updated_at']=$synced; $data['synced_at']=$synced;
+            if ($old && hash_equals($old['content_hash'],$data['content_hash'])) { $result['unchanged']++; $unchanged[]=(int)$old['id']; continue; }
             if ($old) { $ok=$wpdb->update($table,$data,['id'=>$old['id']]); $key='updated'; }
             else { $data['imported_at']=$data['updated_at']; $ok=$wpdb->insert($table,$data); $key='added'; }
             if ($ok===false) { $result['errors'][]=['row'=>$i+1,'message'=>'Database write failed']; } else { $result[$key]++; }
         }
+        foreach (array_chunk($unchanged,500) as $ids) { if ($wpdb->query($wpdb->prepare("UPDATE $table SET synced_at=%s WHERE id IN (".implode(',',array_map('absint',$ids)).')',$synced))===false) { $result['errors'][]=['row'=>0,'message'=>'Database sync timestamp failed']; } }
         if ($result['added'] || $result['updated']) { Cache::invalidate(); }
         return $result;
     }
     public static function query(array $c=[],int $page=1,int $size=100): array {
-        global $wpdb; $key=Cache::key($c,$page,$size); $cache=empty($c['admin']) && ($c['sort']??'latest')!=='random'; if ($cache && ($rows=get_transient($key))!==false) { return $rows; } $where=['1=1']; $args=[];
+        global $wpdb; $scope=(!empty($c['connected'])||empty($c['admin']))?Sources::scope(Security::ids($c['locations']??[])):null; if ($scope) { $c['_scope']=$scope; } $key=Cache::key($c,$page,$size); $cache=empty($c['admin']) && ($c['sort']??'latest')!=='random'; if ($cache && ($rows=get_transient($key))!==false) { return $rows; } $where=['1=1']; $args=[]; if ($scope) { $where[]=!empty($c['connected'])?$scope['where']:('(r.source_type<>\'licensed\' OR '.$scope['where'].')'); $args=$scope['args']; }
         if (empty($c['admin'])) { $where[]='r.published=1'; $where[]='l.active=1'; }
         $ids=Security::ids($c['locations']??[]);
         if ($ids) { $where[]='r.location_id IN ('.implode(',',array_fill(0,count($ids),'%d')).')'; array_push($args,...$ids); }

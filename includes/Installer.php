@@ -32,6 +32,10 @@ final class Installer {
  source_name varchar(190) NOT NULL,
  source_url text NOT NULL,
  source_type varchar(32) NOT NULL,
+ provider_id varchar(64) NOT NULL DEFAULT '',
+ source_binding char(64) NOT NULL DEFAULT '',
+ license_reference varchar(2048) NOT NULL DEFAULT '',
+ synced_at datetime NULL,
  response longtext NOT NULL,
  content_hash char(64) NOT NULL,
  published tinyint NOT NULL DEFAULT 1,
@@ -44,7 +48,10 @@ final class Installer {
  KEY rating_date (rating,review_date),
  KEY location_date (location_id,published,review_date,id),
  KEY published_date (published,review_date,id),
- KEY source_date (source_type,review_date,id)
+ KEY source_date (source_type,review_date,id),
+ KEY provider_binding (location_id,provider_id,source_binding,published),
+ KEY provider_external (provider_id,external_id),
+ KEY synchronized_at (synced_at)
 ) $c;");
         dbDelta("CREATE TABLE {$p}widgets (
  id bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -69,7 +76,7 @@ final class Installer {
  KEY created_at (created_at)
 ) $c;");
         update_option('grw_db_version', GRW_VERSION, false);
-        add_option('grw_settings', ['analytics'=>false,'retention'=>90,'delete_data'=>false,'consent_required'=>true]);
+        add_option('grw_settings', ['analytics'=>true,'retention'=>90,'delete_data'=>false,'consent_required'=>true]);
         add_option('grw_onboarding', true);
         if (!wp_next_scheduled('grw_tick')) { wp_schedule_event(time()+300, 'hourly', 'grw_tick'); }
     }

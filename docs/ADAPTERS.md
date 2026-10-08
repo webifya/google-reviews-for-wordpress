@@ -22,3 +22,8 @@ Use `grw_location_config` to validate any provider-specific fields on location s
 Rows use the documented import fields. Stable external IDs are essential for update semantics. No adapter can authorize publishing by simply setting a source name or verification flag; the core intentionally renders no fabricated verification marks. Sync imports retain existing moderation states and preserve previously saved rows on temporary errors. Missing upstream rows are not deleted automatically.
 
 The built-in `local_json` adapter reads a rights-confirmed media attachment within uploads. A content fingerprint in its cursor restarts pagination if the feed changes during a run, preventing stale offsets from losing rows. It serves as a working API-free integration without remote-network permissions.
+
+
+## Phase 6 stored-provider additions
+
+The existing `PermanentReviewProvider` remains the contract for reviewed permanent storage/public display; unsupported time-limited policies are rejected. New licensed imports include provider ID, business binding, license reference and `synced_at`. Stable external IDs must be nonempty and at most 190 bytes. New sources are unscheduled until a complete successful collection; default frequency is 259,200 seconds. Optional `removed_ids` (at most 500 scalar IDs per page) require `policy()['deletions'] === true` and are scoped to the current provider/business. Declare this only against the actual documented contract. A future TTL feed needs provider-specific expiry/purge before registration. See [Phase 6 source guide](PHASE6-SOURCES.md) and [scheduling](PHASE6-SYNCHRONIZATION.md).

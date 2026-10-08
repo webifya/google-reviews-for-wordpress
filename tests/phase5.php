@@ -1,0 +1,44 @@
+<?php
+/** Phase 5 simulated licensed-provider tests. No vendor account, Google data or live refresh is used. */
+require rtrim(getenv('GRW_WP_ROOT'),'/').'/wp-load.php';
+use Webifya\GRW\{Sources,PermanentReviewProvider,Locations,Reviews,Sync,Widgets,Renderer,Admin};
+global $wpdb;$n=0;$ids=[];$widgets=[];$mode='normal';$calls=0;$grant=true;$text='SYNTHETIC phase5 content';$license='https://example.org/phase5-license';$oldGrants=get_option('grw_license_grants',false);
+function v5($condition,$label){global $n;if(!$condition)throw new RuntimeException($label);echo "PASS: $label\n";$n++;}
+$adapter=new class implements PermanentReviewProvider {
+ public function label():string{return 'SYNTHETIC Phase 5 licensed fixture';}
+ public function supports_sync():bool{return true;}
+ public function policy():array{global $grant,$license;return ['permanent_storage'=>$grant,'public_display'=>true,'license_reference'=>$license,'maximum'=>null,'requirements'=>'SYNTHETIC fixture only'];}
+ public function fetch(array $location,?string $cursor){global $mode,$calls,$text;$calls++;
+  if($mode==='empty')return ['reviews'=>[], 'cursor'=>null];
+  if($mode==='auth')return new WP_Error('SECRET_DO_NOT_LOG','SECRET_DO_NOT_LOG');
+  if($mode==='invalid')return ['reviews'=>[['external_id'=>'one','reviewer'=>'SYNTHETIC valid','content'=>'Would otherwise be partly written'],['external_id'=>'two','reviewer'=>'','content'=>'Invalid']], 'cursor'=>null];
+  if($mode==='missing_id')return ['reviews'=>[['reviewer'=>'SYNTHETIC reviewer','content'=>'No stable ID']], 'cursor'=>null];
+  $i=$mode==='paging'?(int)($cursor??0):0;
+  $next=$mode==='paging'?($i<5?(string)($i+1):null):($mode==='cycle'?($cursor==='A'?'B':'A'):null);
+  return ['reviews'=>[['external_id'=>'fixture-'.$i,'reviewer'=>'SYNTHETIC phase5 reviewer','rating'=>5,'content'=>$text,'review_date'=>'2024-01-01','source_name'=>'Synthetic licensed fixture']], 'cursor'=>$next];
+ }
+};
+$filter=fn($a)=>array_merge($a,['fixture5'=>$adapter,'fixture5b'=>$adapter]);add_filter('grw_source_adapters',$filter);
+$l=Locations::save(['name'=>'SYNTHETIC Phase5 business','provider'=>'fixture5','place_id'=>'ChIJphase5','active'=>true,'frequency'=>0]);$ids[]=$l;
+v5(!Sources::connection(Locations::get($l))['connected'],'credentials/configuration alone cannot validate source');
+$r=Sync::run($l);$c=Sources::connection(Locations::get($l));v5($r['added']===1&&$c['connected'],'retrieval validates fixture collection');v5($c['status']==='Connected — Manual Sync Only'&&!$c['daily_active'],'disabled schedule never claims daily active');v5($c['accessible_count']===1,'actual accessible count is bound to retrieved rows');v5($r['retrieved']===1&&$r['pages']===1&&isset($r['duration_ms'])&&$r['complete'],'retrieval counts pages duration and completion recorded');
+$mode='empty';v5(is_wp_error(Sync::run($l))&&!Sources::connection(Locations::get($l))['connected'],'empty refresh cannot validate a previously stored collection');$mode='normal';Sync::run($l);
+$w=Widgets::save(['name'=>'SYNTHETIC Phase5 widget','config'=>['locations'=>[$l]]]);$widgets[]=$w;v5(str_contains(Renderer::render($w),'SYNTHETIC phase5 reviewer'),'bound licensed review renders');
+Locations::save(['id'=>$l,'provider'=>'fixture5b']);v5(!Sources::connection(Locations::get($l))['connected'],'changing provider cannot reuse old success or rows');v5(Renderer::render($w)==='','provider change excludes older licensed rows');v5((int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}grw_reviews WHERE location_id=%d",$l))===1,'provider change preserves retained records');
+Sync::run($l);v5(Sources::connection(Locations::get($l))['accessible_count']===1,'new provider gets separate accessible collection');v5(count(Reviews::query(['locations'=>[$l],'admin'=>true]))===2,'provider-specific stable identities remain separate');
+Locations::save(['id'=>$l,'place_id'=>'ChIJchanged']);v5(!Sources::connection(Locations::get($l))['connected']&&Renderer::render($w)==='','different business cannot reuse previous provider rows');Sync::run($l);v5(Sources::connection(Locations::get($l))['accessible_count']===1,'revalidated business gets own collection');
+$license='https://example.org/new-contract';v5(Renderer::render($w)==='','changed license invalidates cached connected data');Sync::run($l);v5(str_contains(Renderer::render($w),'SYNTHETIC phase5 reviewer'),'new grant restores current collection');
+$legacyWidget=Widgets::save(['name'=>'SYNTHETIC old source widget','config'=>['source'=>'','locations'=>[$l]]]);$widgets[]=$legacyWidget;v5(str_contains(Renderer::render($legacyWidget),'SYNTHETIC phase5 reviewer'),'legacy widget can render a currently licensed collection');
+$grant='false';v5(!Sources::eligible(Locations::get($l))&&is_wp_error(Sync::run($l)),'truthy permission strings are not storage grants');v5(Renderer::render($w)==='','revoked storage permission excludes cached rows');v5(Renderer::render($legacyWidget)==='','legacy widget cache cannot bypass revoked licensed permission');$grant=true;
+Locations::save(['id'=>$l,'frequency'=>86400]);Sync::run($l);v5(Sources::connection(Locations::get($l))['daily_active'],'validated daily source needs configured schedule');
+Locations::save(['id'=>$l,'frequency'=>43200]);Sync::run($l);v5(!Sources::connection(Locations::get($l))['daily_active']&&Sources::connection(Locations::get($l))['status']==='Connected — Every 0.5 days','non-daily schedule labeled accurately');
+$before=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}grw_reviews WHERE location_id=%d",$l));$mode='invalid';v5(is_wp_error(Sync::run($l)),'invalid page rejected');v5((int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}grw_reviews WHERE location_id=%d",$l))===$before,'whole page validation prevents partial invalid import');
+$mode='missing_id';v5(is_wp_error(Sync::run($l)),'licensed review requires stable external ID');$mode='auth';Sync::run($l);v5(!str_contains(wp_json_encode($wpdb->get_results("SELECT message FROM {$wpdb->prefix}grw_logs")),'SECRET_DO_NOT_LOG'),'provider secret error bodies and codes never logged');v5(get_option('grw_sync_error_'.$l)['code']==='provider_error','safe error diagnostic recorded');v5(Sources::connection(Locations::get($l))['last_error']['message']==='Review retrieval failed. Check the source connection and retry.','admin error uses a fixed actionable message');
+$mode='normal';Sync::run($l);v5(!get_option('grw_sync_error_'.$l),'successful retry clears safe error');
+$mode='paging';$paged=Locations::save(['name'=>'SYNTHETIC paginated business','provider'=>'fixture5','place_id'=>'ChIJpaged']);$ids[]=$paged;$r=Sync::run($paged);v5(!$r['complete']&&$r['added']===5&&get_option('grw_cursor_'.$paged)==='5','bounded five-page job resumes');$r=Sync::run($paged);v5($r['complete']&&$r['added']===6&&$r['retrieved']===6&&$r['pages']===6,'resumed statistics describe complete collection');v5(!get_option('grw_cursor_'.$paged)&&!get_option('grw_sync_progress_'.$paged),'completed job clears cursor and progress');$r=Sync::run($paged);$r=Sync::run($paged);v5($r['added']===0&&$r['unchanged']===6,'full recurring refresh deduplicates paginated records');
+$mode='cycle';$cycle=Locations::save(['name'=>'SYNTHETIC cycle business','provider'=>'fixture5','place_id'=>'ChIJcycle']);$ids[]=$cycle;v5(is_wp_error(Sync::run($cycle)),'multi-cursor pagination loop rejected');
+$mode='normal';$scale=[];for($i=0;$i<25;$i++){$x=Locations::save(['name'=>'SYNTHETIC scale '.$i,'provider'=>'fixture5','place_id'=>'ChIJscale'.$i,'frequency'=>86400]);$ids[]=$x;$scale[]=$x;}
+foreach([1,5,10,25] as $count){foreach(array_slice($scale,0,$count) as $x){$wpdb->update($wpdb->prefix.'grw_locations',['next_sync'=>time()-1],['id'=>$x]);}for($i=0;$i<ceil($count/5)+1;$i++)Sync::tick();$valid=array_filter(array_slice($scale,0,$count),fn($x)=>Sources::connection(Locations::get($x))['daily_active']);v5(count($valid)===$count,"$count locations have independent fixture daily schedules");}
+wp_set_current_user(1);$request=new WP_REST_Request('GET');$state=Admin::handle('state',$request);v5(!str_contains(wp_json_encode($state),'SECRET_DO_NOT_LOG'),'admin state excludes raw provider errors');v5((int)$state['review_summary']['count']===32,'connected summary includes only current bound collections');
+remove_filter('grw_source_adapters',$filter);foreach($widgets as $x)$wpdb->delete($wpdb->prefix.'grw_widgets',['id'=>$x]);foreach($ids as $x){foreach(['reviews','logs'] as $table)$wpdb->delete($wpdb->prefix.'grw_'.$table,['location_id'=>$x]);$wpdb->delete($wpdb->prefix.'grw_locations',['id'=>$x]);foreach(['grw_cursor_','grw_sync_progress_','grw_sync_counts_','grw_sync_error_'] as $prefix)delete_option($prefix.$x);}if($oldGrants===false)delete_option('grw_license_grants');else update_option('grw_license_grants',$oldGrants,false);
+echo "$n Phase 5 simulated assertions passed; live provider and 24-hour production cycle NOT verified.\n";

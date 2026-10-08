@@ -96,7 +96,7 @@ final class Places {
             $rows[]=['id'=>$i+1,'location_id'=>$id,'reviewer'=>$author['displayName'],'avatar'=>Security::url($author['photoUri']??''),'author_url'=>Security::url($author['uri']??''),'rating'=>(int)$r['rating'],'content'=>$text,'review_date'=>gmdate('Y-m-d H:i:s',strtotime($r['publishTime'])),'permalink'=>Security::url($r['googleMapsUri']??''),'source_url'=>Security::url($result['googleMapsUri']??''),'source_type'=>'google_places','source_name'=>'Google Maps','response'=>'','visit_date'=>isset($r['visitDate']['year'],$r['visitDate']['month'])?sprintf('%04d-%02d',(int)$r['visitDate']['year'],(int)$r['visitDate']['month']):'', 'attributions'=>$result['attributions']??[]];
         }
         // Validated response with zero reviews is a working API, but NOT a connected review collection.
-        update_option('grw_places_validation_'.$id,['validated_at'=>current_time('mysql',true),'has_reviews'=>(bool)$rows],false);
+        update_option('grw_places_validation_'.$id,['validated_at'=>current_time('mysql',true),'has_reviews'=>(bool)$rows,'retrieved_count'=>count($rows)],false);
         return ['reviews'=>$rows,'identity'=>$result];
     }
     public static function token(int $id,bool $preview=false): string { return wp_hash('grw-live-widget:'.$id.':'.(int)$preview.':'.get_option(self::OPTION,'')); }
