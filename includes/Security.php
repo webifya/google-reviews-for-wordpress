@@ -4,6 +4,7 @@ if (!defined('ABSPATH')) { exit; }
 final class Security {
     public static function can(): bool { return current_user_can('manage_options'); }
     public static function url($value): string {
+        if (!is_scalar($value)) { return ''; }
         $url = esc_url_raw((string)$value, ['https']);
         $p = wp_parse_url($url);
         if (!$p || empty($p['host']) || isset($p['user']) || isset($p['pass']) || isset($p['port'])) { return ''; }
@@ -13,13 +14,29 @@ final class Security {
     }
     public static function maps($value): string {
         $url = self::url($value); $p = wp_parse_url($url);
-        return $p && !empty($p['host']) && in_array(strtolower($p['host']), ['www.google.com','google.com','maps.google.com','maps.app.goo.gl','goo.gl'], true) ? $url : '';
+        if (!$p || !in_array(strtolower($p['host']??''), ['www.google.com','google.com','maps.google.com','maps.app.goo.gl','goo.gl'], true)) { return ''; }
+        if (($p['host']==='goo.gl' && !str_starts_with($p['path']??'', '/maps/')) || (in_array($p['host'],['www.google.com','google.com'],true) && !str_starts_with($p['path']??'','/maps'))) { return ''; }
+        return $url;
+    }
+    /** Resolve official share redirects only; never read review HTML or infer ownership. */
+    public static function resolve_maps(string $value) {
+        $url=self::maps($value); if (!$url || strlen($url)>2048) { return self::error('Use an official HTTPS Google Maps sharing link'); }
+        for ($i=0;$i<3;$i++) {
+            $host=wp_parse_url($url,PHP_URL_HOST);
+            if (!in_array($host,['maps.app.goo.gl','goo.gl'],true)) { return ['url'=>$url,'identity_confirmed'=>false]; }
+            $response=wp_safe_remote_head($url,['timeout'=>8,'redirection'=>0,'reject_unsafe_urls'=>true,'limit_response_size'=>1024]);
+            if (is_wp_error($response)) { return self::error('Cannot resolve this short link. Open it in your browser and copy the full Maps URL.'); }
+            $code=wp_remote_retrieve_response_code($response);$next=wp_remote_retrieve_header($response,'location');
+            if (!in_array($code,[301,302,303,307,308],true) || !is_string($next) || !self::maps($next)) { return self::error('This link does not redirect directly to a supported Maps URL. Copy the full listing URL manually.'); }
+            $url=self::maps($next);
+        }
+        return self::error('Too many share-link redirects. Copy the full listing URL manually.');
     }
     public static function embed($value): string {
         $url = self::url($value); $p = wp_parse_url($url);
         return $p && !empty($p['host']) && $p['host'] === 'www.google.com' && ($p['path'] ?? '') === '/maps/embed' && str_starts_with($p['query'] ?? '', 'pb=') ? $url : '';
     }
-    public static function ids($input): array { return array_values(array_unique(array_filter(array_map('absint', is_array($input) ? $input : explode(',', (string)$input))))); }
+    public static function ids($input): array { return array_values(array_unique(array_filter(array_map(fn($id)=>is_scalar($id)&&preg_match('/^\d+$/',trim((string)$id))?absint($id):0, is_array($input) ? $input : (is_scalar($input)?explode(',', (string)$input):[]))))); }
     public static function error(string $message, int $status = 400): \WP_Error { return new \WP_Error('grw_invalid', $message, ['status'=>$status]); }
     public static function csv($value): string { $v = (string)$value; return preg_match('/^[=+\-@\t\r]/u', $v) ? "'" . $v : $v; }
 }

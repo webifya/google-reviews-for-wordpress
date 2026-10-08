@@ -2,15 +2,15 @@
 
 A WordPress-native plugin for official Google Maps embeds and review cards using content you are authorized to publish. No API key, subscription, application server, build tool, or external database is required in production.
 
-**Release status:** 1.0.0 candidate. See [verification and limitations](docs/VERIFICATION.md) before deploying. An arbitrary Google Maps URL cannot supply individual review data, unlimited Google reviews, or daily Google synchronization.
+**Release status:** 1.1.0-rc.1. See [Phase 2 verification and limitations](docs/PHASE2-REPORT.md) before deploying. An arbitrary Google Maps URL cannot supply individual review data, unlimited Google reviews, or daily Google synchronization.
 
 ## Installation
 
 1. Back up your WordPress site. Requires WordPress 6.4+, PHP 8.1+, MySQL/MariaDB.
-2. Upload `google-reviews-for-wordpress-v1.0.0.zip` under **Plugins → Add New → Upload Plugin**; activate.
+2. Upload `google-reviews-for-wordpress-v1.1.0.zip` under **Plugins → Add New → Upload Plugin**; activate.
 3. Open **Google Reviews → Locations** and add/confirm the business details.
 4. Import CSV/JSON with publishing permission, add manual testimonials, or configure an authorized local JSON feed. For an official map, paste the `src` from Google's **Share → Embed a map** iframe and select the official embed widget template.
-5. Create a widget, select location IDs, save, customize the live preview, and copy its shortcode into your page. Choose a full-width section in your page builder to reproduce the reference composition.
+5. Create a widget, select business locations by name, save, customize the live preview, and copy its shortcode into your page. Choose a full-width section in your page builder to reproduce the reference composition.
 6. Enable analytics only after configuring consent and privacy notices.
 
 ## Features
@@ -23,6 +23,16 @@ A WordPress-native plugin for official Google Maps embeds and review cards using
 - Independent shortcodes and a Gutenberg block selecting a saved widget.
 - Privacy-conscious first-party analytics, consent integration, daily/monthly tables, a daily bar chart, widget/location rankings and CSV export.
 - Source status, cron logs, JSON settings export/import, safe diagnostics, table/index repair and an eight-step guided onboarding flow.
+
+## Upgrade from RC1
+
+Back up the database and plugin directory. Upload the new ZIP using **Plugins → Add New → Upload Plugin**, choose **Replace current with uploaded**, and keep the plugin active. Migration preserves locations, reviews, widgets, styling, analytics and settings. Do not uninstall to upgrade. RC1 upgrade was verified with a complete before/after snapshot.
+
+## New in Phase 2
+
+The builder has isolated live previews, desktop/tablet/mobile views, five color presets, undo, save as new, named location selection and publish controls. Carousel instances clean up timers/listeners when removed; resize preserves the current card and expanded text. Review management adds visibility filters, bulk visibility/feature changes, protected manual reassignment and import history. Widgets and empty locations can be deleted. Connection cards show stored review counts and scheduling status. Official short sharing links can be resolved with bounded, allowlisted redirects and manual identity confirmation.
+
+Optional Google owner tools use encrypted credentials and temporary responses. Read [Google setup and restrictions](docs/GOOGLE-SETUP.md) and [source comparison](docs/SOURCES.md). Google live authorization has **not** been tested; this is a release candidate. No Google logo or verification marker is fabricated on local testimonials.
 
 ## Shortcodes
 
@@ -41,6 +51,7 @@ Use in WordPress posts/pages, Gutenberg Shortcode blocks, Classic Editor, Elemen
 | Authorized CSV/JSON import | Yes | No | Rights to store and republish content |
 | Manual testimonials | Yes, accurately labeled | No | Publishing rights |
 | Authorized local JSON feed | Yes | Yes | JSON media attachment, rights confirmation, active location |
+| Google Business Profile | Owner dashboard only; no public cards | First-page owner cache refresh; paginated browsing | Eligible approved project, OAuth, verified business; see setup guide |
 | Extension adapter | Yes when license permits | Adapter-dependent | Trusted integration code and explicit redistribution rights |
 
 Upload the local JSON feed through **Media → Add New**, then enter its media attachment ID on the location. JSON uploads are enabled only for administrators. Maintain/replace that attachment file through your authorized publishing workflow. The plugin reads only `.json` files resolved inside WordPress uploads, up to 10 MB; it does not call a remote URL. A feed is a JSON array in the import schema. Changes are detected on each scheduled sync; stable IDs update existing records. Review disappearance does not automatically delete saved records.
@@ -70,7 +81,7 @@ Files: 10 MB per browser-selected upload; 500 rows maximum per REST request (UI 
 
 ## Privacy and analytics
 
-Disabled by default. An impression occurs after at least 30% of the section has been visible for one second; it is deduplicated per widget/session. Unique estimates use a random sessionStorage token, hashed on the server and retained in expiring transients; no IP, user agent, visitor email or WordPress user identity is recorded. No browser cookies are created. The token is sent only after consent. Administrator previews are excluded. Do Not Track and Global Privacy Control prevent collection.
+Disabled by default. An impression occurs after at least 30% of the viewport-reachable section has been visible for one second; it is deduplicated per widget/session. Unique estimates use a random sessionStorage token, hashed on the server and retained in expiring transients; no IP, user agent, visitor email or WordPress user identity is recorded. No browser cookies are created. The token is sent only after consent. Administrator previews are excluded. Do Not Track and Global Privacy Control prevent collection.
 
 Consent manager integration:
 
@@ -80,7 +91,7 @@ window.dispatchEvent(new CustomEvent('grw:consent', {detail: true})); // grant l
 window.dispatchEvent(new CustomEvent('grw:consent', {detail: false})); // revoke
 ```
 
-Daily aggregate counters expire after the configured 1–730 days (default 90). Public collection uses same-origin checks, strict event validation, maximum 30 events per batch and 120 per session token per minute. Anonymous counters remain estimates: a determined client can rotate tokens or forge events; they are not billing-grade analytics. Engagement rates are event counts divided by impressions and can exceed 100%. Per-location impressions indicate an assigned widget was visible, not that a particular card was read. Public assets and URLs work with page caching; synchronization never runs during shortcode rendering.
+Daily aggregate counters expire after the configured 1–730 days (default 90). Public collection uses same-origin checks, strict event validation, maximum 30 events per batch and 120 per session token per minute and a global 3,000-event collection budget per minute. Anonymous counters remain estimates: a determined client can rotate tokens or forge events; they are not billing-grade analytics. Engagement rates are event counts divided by impressions and can exceed 100%. Per-location impressions indicate an assigned widget was visible, not that a particular card was read. Public assets and URLs work with page caching; synchronization never runs during shortcode rendering.
 
 External avatars and official embeds may contact third parties. Google iframe content cannot be restyled as plugin cards. Configure those features consistently with your consent policy; the plugin does not automatically block iframe loading for every consent platform.
 
@@ -102,6 +113,6 @@ Tests write sample data into a disposable installation; do not run them on a pro
 
 Namespaced class services: Installer, Locations, Reviews, Sources, Sync, Widgets, Renderer, Analytics, Admin, Security and Plugin bootstrap. Five indexed tables isolate storage. Schema installation is idempotent and versioned; cron registration is idempotent. REST mutations require `manage_options` and WordPress REST cookie nonces; public analytics have a separate restricted payload. Safe source helpers allow only exact code-defined hosts, reject unsafe URLs and disable redirects. No Google scraping, hidden endpoint access, proxy rotation or CAPTCHA bypass exists.
 
-Deactivation clears scheduled work and preserves data. Uninstall preserves everything unless the administrator explicitly selects data deletion. Multisite network activation and network-wide cleanup are not supported; install/configure per site. Diagnostics contain version/health/count information, never provider tokens or internal logs. Source credentials belong in trusted integration configuration and must not be exported.
+Deactivation clears scheduled work and preserves data. Uninstall always removes Google OAuth credentials and cached Google responses. Other plugin data is preserved unless the administrator explicitly selects data deletion. Multisite network activation and network-wide cleanup are not supported; install/configure per site. Diagnostics contain version/health/count information, never provider tokens or internal logs. Source credentials belong in trusted integration configuration and must not be exported.
 
 GPL-2.0-or-later. Not affiliated with or endorsed by Google. Google trademarks belong to their owners.

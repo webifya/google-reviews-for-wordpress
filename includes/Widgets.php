@@ -3,10 +3,10 @@ namespace Webifya\GRW;
 if (!defined('ABSPATH')) { exit; }
 final class Widgets {
     public static function defaults(): array { return [
-        'template'=>'classic','locations'=>[],'selected'=>[],'sort'=>'latest','minimum'=>0,'limit'=>100,
+        'custom_class'=>'','full_width'=>false,'preset'=>'classic','source'=>'','template'=>'classic','locations'=>[],'selected'=>[],'sort'=>'latest','minimum'=>0,'limit'=>100,
         'heading'=>'CLIENT REVIEWS','subtitle'=>'What Our Clients Say...','desktop'=>3,'tablet'=>2,'mobile'=>1,
-        'autoplay'=>true,'interval'=>5000,'duration'=>500,'loop'=>true,'pause_hover'=>true,'pause_interaction'=>true,'peek'=>false,
-        'show_heading'=>true,'show_subtitle'=>true,'show_avatar'=>true,'show_name'=>true,'show_date'=>true,'show_stars'=>true,'show_readmore'=>true,'show_arrows'=>true,'show_dots'=>false,'show_summary'=>false,'show_maps'=>false,'analytics'=>true,
+        'autoplay'=>true,'interval'=>5000,'duration'=>500,'loop'=>true,'pause_hover'=>true,'pause_interaction'=>true,'peek'=>false,'swipe'=>true,'mouse_drag'=>true,'swipe_sensitivity'=>45,'random_start'=>false,
+        'active'=>true,'show_text'=>true,'show_heading'=>true,'show_subtitle'=>true,'show_avatar'=>true,'show_name'=>true,'show_date'=>true,'show_stars'=>true,'show_readmore'=>true,'show_arrows'=>true,'show_dots'=>false,'show_summary'=>false,'show_maps'=>false,'analytics'=>true,
         'max_chars'=>240,'max_lines'=>4,'expansion'=>'inline','summary_position'=>'above','equal_height'=>true,
         'section'=>'#eeeeee','card'=>'#f8f8f8','border'=>'#eeeeee','heading_color'=>'#000000','subtitle_color'=>'#222222','text'=>'#111111','name_color'=>'#111111','muted'=>'#777777','stars'=>'#fbbc04','link'=>'#666666','arrow'=>'#555555','arrow_bg'=>'#ffffff','dot'=>'#aaaaaa','dot_active'=>'#111111',
         'heading_size'=>56,'subtitle_size'=>24,'name_size'=>20,'text_size'=>20,'date_size'=>16,'font_weight'=>400,'line_height'=>1.5,'letter_spacing'=>0,'font'=>'inherit',
@@ -17,11 +17,14 @@ final class Widgets {
         'minimal'=>['section'=>'#ffffff','card'=>'#ffffff','border'=>'#e5e7eb','border_width'=>1,'radius'=>12],
         'dark'=>['section'=>'#16181c','card'=>'#24262d','text'=>'#f5f5f5','heading_color'=>'#ffffff','name_color'=>'#ffffff','subtitle_color'=>'#cccccc','muted'=>'#bbbbbb','link'=>'#e4ba62'],
         'grid'=>['autoplay'=>false],
+        'navy'=>['section'=>'#eaf0f8','card'=>'#ffffff','heading_color'=>'#102b50','name_color'=>'#102b50','link'=>'#1e4c7e','border_width'=>1,'border'=>'#d0dae8'],
+        'gold'=>['section'=>'#faf6ed','card'=>'#ffffff','heading_color'=>'#312815','stars'=>'#b98715','link'=>'#886411','border'=>'#e7d9bc','border_width'=>1,'shadow'=>true],
         'compact'=>['avatar'=>56,'min_height'=>240,'text_size'=>16,'heading_size'=>36,'padding'=>40]
     ]; }
     public static function sanitize(array $in): array {
-        $out=array_merge(self::defaults(),self::presets()[$in['template']??'classic']??[]);
+        $template=is_string($in['template']??null)?$in['template']:'classic'; $out=array_merge(self::defaults(),self::presets()[$template]??[]);
         foreach ($out as $k=>$v) {
+            if (isset($in[$k]) && !is_scalar($in[$k]) && !in_array($k,['locations','selected'],true)) { continue; }
             if (!array_key_exists($k,$in)) { continue; }
             if (is_bool($v)) { $out[$k]=filter_var($in[$k],FILTER_VALIDATE_BOOLEAN); }
             elseif (in_array($k,['locations','selected'],true)) { $out[$k]=Security::ids($in[$k]); }
@@ -29,10 +32,12 @@ final class Widgets {
             elseif (str_starts_with($v,'#')) { $out[$k]=sanitize_hex_color($in[$k]) ?: $v; }
             else { $out[$k]=sanitize_text_field($in[$k]); }
         }
-        $enums=['template'=>['classic','minimal','dark','grid','compact','embed'],'sort'=>['latest','oldest','highest','lowest','random','manual','featured'],'expansion'=>['inline','modal','full'],'summary_position'=>['above','left','card'],'heading_align'=>['left','center','right'],'text_align'=>['left','center','right']];
+        $enums=['source'=>['','import','manual','adapter'],'preset'=>['classic','minimal','dark','navy','gold'],'template'=>['classic','minimal','dark','grid','compact','embed'],'sort'=>['latest','oldest','highest','lowest','random','manual','featured'],'expansion'=>['inline','modal','full'],'summary_position'=>['above','left','card'],'heading_align'=>['left','center','right'],'text_align'=>['left','center','right']];
         foreach ($enums as $k=>$values) { if (!in_array($out[$k],$values,true)) { $out[$k]=self::defaults()[$k]; } }
-        $ranges=['minimum'=>[0,5],'limit'=>[1,10000],'desktop'=>[1,6],'tablet'=>[1,4],'mobile'=>[1,2],'interval'=>[2000,60000],'duration'=>[0,2000],'max_chars'=>[0,10000],'max_lines'=>[1,50],'heading_size'=>[12,120],'subtitle_size'=>[10,60],'name_size'=>[10,50],'text_size'=>[10,50],'date_size'=>[10,40],'font_weight'=>[100,900],'line_height'=>[1,3],'letter_spacing'=>[-2,10],'summary_width'=>[120,700],'width'=>[280,2400],'padding'=>[0,200],'card_padding'=>[8,100],'gap'=>[4,100],'radius'=>[0,100],'border_width'=>[0,10],'avatar'=>[24,150],'min_height'=>[150,1000]];
+        $ranges=['swipe_sensitivity'=>[10,150],'minimum'=>[0,5],'limit'=>[1,10000],'desktop'=>[1,6],'tablet'=>[1,4],'mobile'=>[1,2],'interval'=>[2000,60000],'duration'=>[0,2000],'max_chars'=>[0,10000],'max_lines'=>[1,50],'heading_size'=>[12,120],'subtitle_size'=>[10,60],'name_size'=>[10,50],'text_size'=>[10,50],'date_size'=>[10,40],'font_weight'=>[100,900],'line_height'=>[1,3],'letter_spacing'=>[-2,10],'summary_width'=>[120,700],'width'=>[280,2400],'padding'=>[0,200],'card_padding'=>[8,100],'gap'=>[4,100],'radius'=>[0,100],'border_width'=>[0,10],'avatar'=>[24,150],'min_height'=>[150,1000]];
         foreach ($ranges as $k=>[$min,$max]) { $out[$k]=max($min,min($max,$out[$k])); }
+        $out['custom_class']=implode(' ',array_filter(array_map('sanitize_html_class',preg_split('/\s+/',(string)$out['custom_class']))));
+        foreach (['desktop','tablet','mobile','minimum','limit','max_chars','max_lines','font_weight','swipe_sensitivity'] as $k) { $out[$k]=(int)$out[$k]; }
         if (!preg_match('/^[a-zA-Z0-9 ,"\'-]{1,150}$/',$out['font'])) { $out['font']='inherit'; }
         return $out;
     }

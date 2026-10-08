@@ -10,6 +10,7 @@ final class Plugin {
         add_action('admin_enqueue_scripts',[Admin::class,'assets']);
         add_action('admin_init',function(){ register_setting('grw','grw_settings',['sanitize_callback'=>[Admin::class,'settings']]); });
         add_filter('upload_mimes',function($m){ if (Security::can()) { $m['json']='application/json'; } return $m; });
+        add_action('admin_post_grw_google_callback',[GoogleBusiness::class,'callback']);
         add_action('rest_api_init',[Admin::class,'routes']);
         add_shortcode('google_reviews_widget',function($atts){ $a=shortcode_atts(['id'=>0,'limit'=>0],$atts,'google_reviews_widget'); return Renderer::render(absint($a['id']),absint($a['limit'])?['limit'=>absint($a['limit'])]:[]); });
         add_action('init',function(){

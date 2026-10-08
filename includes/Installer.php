@@ -41,7 +41,10 @@ final class Installer {
  PRIMARY KEY  (id),
  UNIQUE KEY identity (identity),
  KEY location_status (location_id,published),
- KEY rating_date (rating,review_date)
+ KEY rating_date (rating,review_date),
+ KEY location_date (location_id,published,review_date,id),
+ KEY published_date (published,review_date,id),
+ KEY source_date (source_type,review_date,id)
 ) $c;");
         dbDelta("CREATE TABLE {$p}widgets (
  id bigint unsigned NOT NULL AUTO_INCREMENT,

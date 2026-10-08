@@ -7,7 +7,7 @@ final class Sync {
         global $wpdb;
         $due=$wpdb->get_col($wpdb->prepare("SELECT id FROM {$wpdb->prefix}grw_locations WHERE next_sync>0 AND next_sync<=%d ORDER BY next_sync LIMIT 5",time()));
         foreach ($due as $id) { self::run((int)$id); }
-        $s=get_option('grw_settings',[]); $days=max(1,min(730,absint($s['retention']??90)));
+        $s=get_option('grw_settings',[]); GoogleBusiness::cleanup(); $days=max(1,min(730,absint($s['retention']??90)));
         $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}grw_analytics WHERE day < %s",gmdate('Y-m-d',time()-$days*DAY_IN_SECONDS)));
         $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}grw_logs WHERE created_at < %s",gmdate('Y-m-d H:i:s',time()-90*DAY_IN_SECONDS)));
     }
@@ -39,9 +39,10 @@ final class Sync {
             $wpdb->update($table,['status'=>$complete?'last_sync_successful':'syncing','last_success'=>$complete?current_time('mysql',true):$location['last_success'],'failures'=>0,'next_sync'=>$complete?(!empty($data['frequency'])?time()+$data['frequency']:0):time()+3600],['id'=>$id]);
             self::log($id,wp_json_encode($counts)); return $counts;
         } catch (\Throwable $e) {
+            $reason=is_wp_error($batch??null)?sanitize_key($batch->get_error_code()):'invalid_provider_response';
             $failures=(int)$location['failures']+1;
             $wpdb->update($table,['status'=>'sync_failed','failures'=>$failures,'next_sync'=>!empty($data['frequency'])?time()+($failures<=3?min(21600,900*(2**($failures-1))):$data['frequency']):0],['id'=>$id]);
-            self::log($id,'Sync failed; previous data preserved.'); return Security::error('Synchronization failed; see provider configuration.');
+            self::log($id,'Sync failed ('.$reason.'); previous data preserved.'); return Security::error('Synchronization failed ('.$reason.'). Check the source connection and retry.');
         } finally { delete_option($key); }
     }
 }

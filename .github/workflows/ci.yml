@@ -10,11 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php: ['8.1', '8.4']
+        php: ['8.1', '8.2', '8.3', '8.4']
         wordpress: ['6.4.7', 'latest']
+        database: ['mysql', 'mariadb']
     services:
       mysql:
-        image: mysql:8.0
+        image: ${{ matrix.database == 'mysql' && 'mysql:8.0' || 'mariadb:10.11' }}
         env:
           MYSQL_ROOT_PASSWORD: test
           MYSQL_DATABASE: grw_test
@@ -35,7 +36,7 @@ jobs:
         run: |
           find . -name '*.php' -print0 | xargs -0 -n1 php -l
           npm run check
-          python3 scripts/package.py /tmp/google-reviews-for-wordpress-v1.0.0.zip
+          python3 scripts/package.py /tmp/google-reviews-for-wordpress-v1.1.0.zip
       - name: Install clean WordPress from package
         run: |
           curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp.phar
@@ -43,12 +44,15 @@ jobs:
           php /tmp/wp.phar core download --path=/tmp/wordpress --version=${{ matrix.wordpress }}
           php /tmp/wp.phar config create --path=/tmp/wordpress --dbname=grw_test --dbuser=root --dbpass=test --dbhost=127.0.0.1:3306
           php /tmp/wp.phar core install --path=/tmp/wordpress --url=http://127.0.0.1:8097 --title=Test --admin_user=grwtest --admin_password=local-test-password --admin_email=test@example.invalid
-          unzip /tmp/google-reviews-for-wordpress-v1.0.0.zip -d /tmp/wordpress/wp-content/plugins
+          unzip /tmp/google-reviews-for-wordpress-v1.1.0.zip -d /tmp/wordpress/wp-content/plugins
           GRW_WP_ROOT=/tmp/wordpress php tests/integration.php
+          GRW_WP_ROOT=/tmp/wordpress php tests/benchmark.php > /tmp/benchmark.json
       - uses: actions/upload-artifact@v4
         with:
-          name: plugin-php-${{ matrix.php }}-wp-${{ matrix.wordpress }}
-          path: /tmp/google-reviews-for-wordpress-v1.0.0.zip
+          name: plugin-php-${{ matrix.php }}-wp-${{ matrix.wordpress }}-${{ matrix.database }}
+          path: |
+            /tmp/google-reviews-for-wordpress-v1.1.0.zip
+            /tmp/benchmark.json
   browsers:
     runs-on: ubuntu-latest
     steps:
