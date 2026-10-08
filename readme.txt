@@ -37,7 +37,7 @@ Optional official Google Maps iframes contact Google (https://www.google.com/hel
 = 1.2.0-rc.1 =
 Public listing default, four-step editor, separate map/reviews previews, secure sharing iframe parsing, map/grid/combined shortcodes, optional widget maps, distinct connections, responsive administration, metadata-only schedule preservation. Live Google OAuth still requires verification.
 
-= 1.2.0-rc.1 =
+= 1.1.0-rc.1 =
 Optional fixture-tested Google owner OAuth/browser tools; improved builder, templates, review management, query caching and analytics; regression fixes. Live Google account verification remains outstanding. RC1 data-preserving upgrade verified.
 
 = 1.0.0 =
