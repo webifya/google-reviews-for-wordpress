@@ -14,9 +14,13 @@ final class LocalCollector {
         return '';
     }
     public static function status(): array {
-        $cfg=get_option('grw_collector',[]);
-        // Existing worker installations keep their configured transport after upgrading.
-        $mode=$cfg['mode']??(get_option('grw_browser_heartbeat',0)?'remote':'local');
+        $cfg=get_option('grw_collector',null);
+        // Decide compatibility once; a local claim must never switch the default transport.
+        if ($cfg===null) {
+            add_option('grw_collector',['mode'=>get_option('grw_browser_heartbeat',0)?'remote':'local','headless'=>true],'','no');
+            $cfg=get_option('grw_collector',[]);
+        }
+        $mode=$cfg['mode']??'local';
         $node=self::executable($cfg['node']??'')?:self::detect(['/usr/bin/node','/usr/local/bin/node','/opt/homebrew/bin/node']);
         $browser=self::executable($cfg['browser']??'')?:self::detect(['/usr/bin/chromium','/usr/bin/chromium-browser','/usr/bin/google-chrome','/opt/google/chrome/chrome','/Applications/Google Chrome.app/Contents/MacOS/Google Chrome']);
         $problem=!function_exists('proc_open')?'This host disables browser processes. Ask your host to enable proc_open or use an external collector.':(!$node?'Node.js is missing. Ask your host to install Node.js 22 or newer.':(!$browser?'Chrome/Chromium is missing. Ask your host to install it.':''));
@@ -83,7 +87,7 @@ final class LocalCollector {
         if (!add_option('grw_collector_lock',time(),'','no')) { self::schedule(); return; }
         try {
             if (function_exists('set_time_limit')) { @set_time_limit(240); }
-            $job=Scraper::handle(['action'=>'claim'])['job']??null;
+            $job=Scraper::handle(['action'=>'claim','transport'=>'local'])['job']??null;
             if ($job) {
                 $result=self::process(['url'=>$job['url'],'business_name'=>$job['business_name'],'maximum'=>$job['maximum']],$s);
                 if (is_wp_error($result)) { $result=['rows'=>[],'reason'=>'runtime_error']; }

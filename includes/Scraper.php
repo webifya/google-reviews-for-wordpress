@@ -62,7 +62,7 @@ final class Scraper {
         global $wpdb;
         if (($in['action']??'status')==='status') { return self::status(); }
         if (($in['action']??'')==='claim') {
-            update_option('grw_browser_heartbeat',time(),false); self::expire();
+            if (($in['transport']??'')!=='local') { update_option('grw_browser_heartbeat',time(),false); } self::expire();
             foreach (Locations::all() as $l) {
                 $id=(int)$l['id']; $key='grw_browser_job_'.$id; $job=get_option($key,[]); $d=json_decode($l['data'],true)?:[];
                 if (!$job || ($job['state']??'')!=='queued' || !Sources::eligible($l) || ($d['provider']??'')!=='google_scraper') { continue; }

@@ -15,7 +15,7 @@ Node.js 22+, Chrome/Chromium with its OS libraries, PHP proc_open, and adequate 
 ## Validation
 
 - 373 previous backend assertions and 48 existing scraper assertions passed on disposable WordPress 7.1.3/PHP 8.4.23.
-- 15 new installed-package assertions passed: browser-library inclusion; actual browser startup; path/mode validation; anonymous configuration denial; credential-free process-to-storage transport; daily/72-hour schedules; deduplication; single-process lock; malformed-result retention; optional external mode.
+- 16 new installed-package assertions passed: browser-library inclusion; actual browser startup; path/mode validation; anonymous configuration denial; credential-free process-to-storage transport; daily/72-hour schedules; deduplication; single-process lock; malformed-result retention; optional external mode.
 - 15 admin browser assertions and 13 public-page DOM fixtures passed in Chrome. No JavaScript errors.
 - Upgrade from the preceding rc.1 installation compared every persisted location/review/widget/analytics/log row, settings and encrypted legacy credentials, without seeding or replacing existing data. All were preserved; repeated migration was idempotent and the stored genuine-review carousel shortcode still rendered. The old upgrade test's unrelated fixture page was absent on this installation; a direct full-data comparison and existing carousel were used here. The standard seeded upgrade suite remains in CI.
 - Syntax and package archive checks passed. Private admin screenshots, review captures and local snapshots are not release assets.

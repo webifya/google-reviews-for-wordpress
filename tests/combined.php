@@ -22,6 +22,7 @@ try {
 JS);
  combined(!empty(Sync::run($id)['queued'])&&wp_next_scheduled('grw_browser_local'),'download queues existing job and local WP-Cron event');
  LocalCollector::run();$count=fn()=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}grw_reviews WHERE location_id=%d",$id));
+ combined(LocalCollector::status()['mode']==='local','local claims preserve bundled execution mode');
  combined($count()===1&&!get_option('grw_browser_job_'.$id),'bundled process result enters existing validated storage without application password');
  combined(abs((int)Locations::get($id)['next_sync']-time()-259200)<5,'three-day schedule preserved');
  Sync::run($id);LocalCollector::run();combined($count()===1&&get_option('grw_sync_counts_'.$id)['unchanged']===1,'same process result does not duplicate review');
