@@ -30,7 +30,7 @@ final class Sources {
     public static function capabilities(string $id): array {
         $p=self::all()[$id]??null;
         $base=['ownership'=>false,'api_key'=>false,'individual_reviews'=>false,'maximum'=>0,'history'=>false,'new_reviews'=>false,'daily'=>false,'public_display'=>false,'storage'=>'none','attribution'=>'Source and author','requirements'=>'Connect a supported source','license_reference'=>''];
-        if ($id==='google_scraper') { return array_merge($base,['individual_reviews'=>true,'history'=>false,'new_reviews'=>true,'daily'=>true,'public_display'=>true,'storage'=>'public_browser','maximum'=>500,'requirements'=>'Experimental public-page collection. Requires a running Node/Chromium worker; stops at access restrictions. Administrator opt-in is not a Google license.','attribution'=>'Google Maps · public page']); }
+        if ($id==='google_scraper') { return array_merge($base,['individual_reviews'=>true,'history'=>false,'new_reviews'=>true,'daily'=>true,'public_display'=>true,'storage'=>'public_browser','maximum'=>500,'requirements'=>'Experimental public-page collection. Bundled collector requires Node/Chromium on the hosting server; stops at access restrictions. Administrator opt-in is not a Google license.','attribution'=>'Google Maps · public page']); }
         if ($id==='google_places') { return array_merge($base,['api_key'=>true,'individual_reviews'=>true,'maximum'=>5,'new_reviews'=>true,'public_display'=>true,'requirements'=>'Places API (New), billing, restricted server key, applicable Google agreement and public terms/privacy','attribution'=>'Google Maps, author/avatar/profile, source link, provider credits, visit date when supplied','storage'=>'request_only','license_reference'=>'https://developers.google.com/maps/documentation/places/web-service/policies']); }
         if ($id==='google_business') { return array_merge($base,['ownership'=>true,'individual_reviews'=>true,'maximum'=>'50 per page; paginated owner access','history'=>true,'requirements'=>'Eligible approved project, verified managed business and OAuth','storage'=>'owner_only_15_minutes','license_reference'=>'https://developers.google.com/my-business/content/policies']); }
         if ($p instanceof PermanentReviewProvider) {
@@ -70,6 +70,7 @@ final class Sources {
     }
     public static function error_message(string $code): string {
         return match ($code) {
+            'browser_runtime_error'=>'The hosting server could not run the bundled browser. Check collector setup in Settings. Stored reviews are preserved.',
             'browser_timeout'=>'The browser worker did not finish. Start the worker and download again.',
             'browser_captcha'=>'Google requested CAPTCHA verification. Collection stopped; previous reviews are preserved.',
             'browser_access_denied'=>'Google blocked access. Collection stopped; previous reviews are preserved.',

@@ -2,6 +2,7 @@
 /** Disposable WordPress tests. Every review in this test is a synthetic fixture. */
 require rtrim(getenv('GRW_WP_ROOT'),'/').'/wp-load.php';
 use Webifya\GRW\{Installer,Locations,Sources,Scraper,Sync,Reviews,Renderer,Widgets};
+$collector_before=get_option('grw_collector',null); update_option('grw_collector',['mode'=>'remote'],false);
 Installer::activate(); global $wpdb; $n=0;
 function bs($ok,$label){global $n;if(!$ok)throw new RuntimeException($label);echo "PASS: $label\n";$n++;}
 $before=get_option('grw_settings'); $private=[get_option('grw_places_private'),get_option('grw_google_private')];
@@ -38,4 +39,4 @@ $job=Scraper::handle(['action'=>'claim'])['job'];Locations::save(['id'=>$id,'pla
 $job=get_option('grw_browser_job_'.$id);$job['expires']=time()-1;update_option('grw_browser_job_'.$id,$job,false);Scraper::expire();bs(!get_option('grw_browser_job_'.$id),'stalled worker lease expires');
 do_action('rest_api_init');wp_set_current_user(0);$req=new WP_REST_Request('POST','/grw/v1/scraper');$req->set_body_params(['action'=>'claim']);bs(in_array(rest_get_server()->dispatch($req)->get_status(),[401,403],true),'anonymous worker endpoints denied');
 bs(get_option('grw_settings')===$before&&[get_option('grw_places_private'),get_option('grw_google_private')]===$private,'privacy settings and encrypted historical credentials preserved');
-$wpdb->delete($wpdb->prefix.'grw_widgets',['id'=>$wid]);$wpdb->delete($wpdb->prefix.'grw_reviews',['location_id'=>$id]);$wpdb->delete($wpdb->prefix.'grw_logs',['location_id'=>$id]);$wpdb->delete($wpdb->prefix.'grw_locations',['id'=>$id]);foreach(['grw_sync_counts_','grw_sync_error_','grw_browser_job_','grw_browser_claim_','grw_browser_result_']as $prefix)delete_option($prefix.$id);Sources::clear_scope();echo "$n browser collector assertions passed; genuine Google requests in this suite: 0\n";
+$wpdb->delete($wpdb->prefix.'grw_widgets',['id'=>$wid]);$wpdb->delete($wpdb->prefix.'grw_reviews',['location_id'=>$id]);$wpdb->delete($wpdb->prefix.'grw_logs',['location_id'=>$id]);$wpdb->delete($wpdb->prefix.'grw_locations',['id'=>$id]);foreach(['grw_sync_counts_','grw_sync_error_','grw_browser_job_','grw_browser_claim_','grw_browser_result_']as $prefix)delete_option($prefix.$id);$collector_before===null?delete_option('grw_collector'):update_option('grw_collector',$collector_before,false);Sources::clear_scope();echo "$n browser collector assertions passed; genuine Google requests in this suite: 0\n";

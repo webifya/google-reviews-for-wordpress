@@ -81,5 +81,5 @@ final class Installer {
         add_option('grw_onboarding', true);
         if (!wp_next_scheduled('grw_tick')) { wp_schedule_event(time()+300, 'hourly', 'grw_tick'); }
     }
-    public static function deactivate(): void { wp_clear_scheduled_hook('grw_tick'); }
+    public static function deactivate(): void { wp_clear_scheduled_hook('grw_tick'); wp_clear_scheduled_hook('grw_browser_local'); }
 }

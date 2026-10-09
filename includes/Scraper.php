@@ -17,7 +17,8 @@ final class Scraper {
     }
     public static function status(): array {
         $last=(int)get_option('grw_browser_heartbeat',0);
-        return ['last_seen'=>$last,'online'=>$last>time()-660,'mode'=>'public_page_prototype'];
+        $local=LocalCollector::status();
+        return ['last_seen'=>$last,'online'=>$local['mode']==='local'?$local['ready']:$last>time()-660,'mode'=>'public_page_prototype','local'=>$local];
     }
     public static function connection(array $location,int $count): array {
         $d=json_decode($location['data'],true)?:[]; $worker=self::status(); $connected=!empty($location['last_success'])&&$count>0;
@@ -34,12 +35,15 @@ final class Scraper {
     public static function queue(array $location) {
         global $wpdb; $d=json_decode($location['data'],true)?:[]; $id=(int)$location['id'];
         if (($d['provider']??'')!=='google_scraper' || empty($d['scraper_enabled']) || empty($d['active']) || empty($d['place_id'])) { return Security::error('Select the browser collector, supply a Place ID, and enable experimental collection.'); }
+        $runtime=LocalCollector::status();
+        if ($runtime['mode']==='local' && !$runtime['ready']) { return Security::error($runtime['message'],503); }
         $key='grw_browser_job_'.$id; $job=get_option($key,[]);
-        if ($job && ($job['expires']??0)>time() && ($job['binding']??'')===Sources::binding($location)) { return ['queued'=>true,'id'=>$id]; }
+        if ($job && ($job['expires']??0)>time() && ($job['binding']??'')===Sources::binding($location)) { LocalCollector::schedule(); return ['queued'=>true,'id'=>$id]; }
         $new=['state'=>'queued','binding'=>Sources::binding($location),'expires'=>time()+DAY_IN_SECONDS];
         if ($job) { delete_option($key); }
         if (!add_option($key,$new,'','no')) { return Security::error('A browser collection job is already queued.',409); }
         $wpdb->update($wpdb->prefix.'grw_locations',['status'=>'browser_queued','next_sync'=>0],['id'=>$id]);
+        LocalCollector::schedule();
         return ['queued'=>true,'id'=>$id,'worker_online'=>self::status()['online']];
     }
     public static function expire(): void {
@@ -83,10 +87,10 @@ final class Scraper {
             $d=json_decode($l['data'],true)?:[];
             if (($in['place_id']??'')!==$d['place_id']) { return Security::error('Browser business identity mismatch',409); }
             $reason=sanitize_key($in['reason']??'');
-            if (!in_array($reason,['all_visible','limited_view','login_required','limit_reached','stalled','captcha','access_denied','layout_changed','network_error','identity_mismatch'],true)) { return Security::error('Unknown collection outcome'); }
+            if (!in_array($reason,['all_visible','limited_view','login_required','limit_reached','stalled','captcha','access_denied','layout_changed','network_error','identity_mismatch','runtime_error'],true)) { return Security::error('Unknown collection outcome'); }
             $rows=$in['rows']??[];
             if (!is_array($rows) || !array_is_list($rows) || count($rows)>500 || strlen(wp_json_encode($rows))>2*1024*1024) { return Security::error('Submit at most 500 bounded review rows'); }
-            $bad=in_array($reason,['captcha','access_denied','layout_changed','network_error','identity_mismatch'],true) || !$rows;
+            $bad=in_array($reason,['captcha','access_denied','layout_changed','network_error','identity_mismatch','runtime_error'],true) || !$rows;
             if ($bad) {
                 $retry=in_array($reason,['network_error','layout_changed'],true)&&!empty($d['frequency'])?time()+$d['frequency']:0;
                 $wpdb->update($wpdb->prefix.'grw_locations',['status'=>'sync_failed','next_sync'=>$retry,'failures'=>(int)$l['failures']+1],['id'=>$id]);

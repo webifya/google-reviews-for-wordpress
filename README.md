@@ -1,3 +1,13 @@
+# Combined plugin package · v1.5.0-rc.2
+
+Install the single WordPress ZIP. It includes the PHP plugin, browser collector, and pinned Playwright runtime libraries. Select **Inside this plugin** under **Settings → Bundled browser collector**, save the server executable paths and run **Check browser**. No separate worker ZIP, service or WordPress application password is needed in this mode.
+
+Node.js 22+, Chrome/Chromium and PHP process execution must be available on your hosting server. See [the bundled setup guide](worker/README.md). Existing external collectors remain optional for compatibility. Local storage, carousel settings, review provenance, daily/72-hour scheduling, leases and duplicate protection reuse the existing implementation.
+
+The scraper remains experimental. The previous live test retrieved five of 21 advertised Menjar Financial reviews once, while repeated checks returned no usable cards. Consolidation adds no evidence of reliable unattended access or complete retrieval.
+
+## Earlier implementation notes (historical)
+
 # Google Reviews for WordPress
 
 **1.5.0-rc.1 — experimental public-page browser collector.**

@@ -1,17 +1,35 @@
-# Experimental browser collector
+# Bundled Google Maps collector (experimental)
 
-This worker opens the public Google Maps page, selects Reviews, expands visible text, reads rendered cards, and sends accessible reviews to WordPress. It uses no Google API key, Google account, intercepted response data, private endpoint, proxy rotation, or CAPTCHA solver.
+Install **only the WordPress plugin ZIP**. It contains the collector and pinned Playwright libraries. No second plugin, worker ZIP, WordPress application password or separate service is needed in bundled mode.
 
-**Prototype limitation:** one live visible-browser run on Menjar Financial returned 5 genuine reviews out of 21 advertised. Other visible-browser and headless runs returned no review cards. Downloading every review or dependable unattended operation is not established. Google can require sign-in or restrict the public view. Revising the project requirement does not grant a Google copying or republication license.
+## Hosting requirements
+
+The hosting server must already have Node.js **22 or newer**, Chrome/Chromium, their operating-system dependencies, and PHP `proc_open` enabled. PHP-only shared hosting cannot run this feature unless the host adds these capabilities. Browser and Node binaries are platform-specific and are not shipped or downloaded by the plugin.
+
+In **Google Reviews → Settings**, choose **Inside this plugin**, enter executable paths if automatic detection fails, save, and click **Check browser**. The check launches and closes a browser without requesting Google. Headless mode works without a display; ordinary headed mode requires an existing display or Xvfb on Linux. Ask your host to resolve browser startup restrictions.
+
+Enable experimental collection on a confirmed location. Click **Download available reviews**, then refresh after the background job completes. Select **1 day** or **3 days** in Sync settings. WordPress's existing WP-Cron schedule feeds the same bounded queue and validated import path; no second review table is created. For timely processing on quiet sites, configure the host's scheduler to request `wp-cron.php` every five minutes. Long-running PHP/browser jobs need roughly four minutes of permitted execution time.
+
+Bundled jobs pass an allowlisted job over process input and return bounded JSON directly to WordPress. No credentials or temporary review files are written. One local collector runs at a time; the existing leases, business binding, stable review IDs and result validation protect imports. Pausing a location or changing its identity invalidates queued results. Browser failures retain previously stored reviews.
+
+## What remains experimental
+
+Packaging does not improve Google's access or layout reliability. The prior Menjar Financial live test exposed **5 of 21** reviews in one headed run; repeated and headless checks exposed **0 usable cards**. The five-row WordPress storage test replayed that successful capture. This version does not claim a new successful live scrape, unattended reliability, or access to all reviews.
+
+The collector reads rendered public pages only, in a fresh browser context. It stops at sign-in, CAPTCHA and access restrictions. No accounts, private endpoints, stealth, proxies or bypasses. Relative dates remain labels rather than invented timestamps. Administrator opt-in is not a Google storage license. Existing licensed and legacy sources are preserved separately.
+
+## Existing external installations
+
+Choose **External worker · compatibility** to retain an existing external worker. Its source remains bundled under `worker/`; you may run `run.cjs` from that folder with your existing configuration. The legacy transport is optional. Bundled mode requires no HTTP worker credentials.
 
 ## Where it runs
 
 The WordPress ZIP runs on normal PHP hosting. The separate worker needs Node.js 22+, Playwright, Chromium, and a browser display. A normal visible browser is the default. Run it on an always-on computer or a server that supports a display (for example Linux with Xvfb). Ordinary PHP-only cPanel hosting cannot run this worker. Headless mode is optional but returned no review cards in our live test.
 
-## Setup
+## Optional external-mode setup
 
 1. Install/replace the plugin ZIP without uninstalling the existing plugin.
-2. Extract the separate worker ZIP, open its directory and install:
+2. Copy the bundled worker directory outside the web root, open that copy and install:
 
 ```sh
 npm ci

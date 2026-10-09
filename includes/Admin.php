@@ -18,7 +18,7 @@ final class Admin {
     public static function page(): void { if (!Security::can()) { return; } echo '<div class="wrap grw-admin"><h1>'.esc_html__('Google Reviews','google-reviews-for-wordpress').'</h1><div id="grw-admin-app"></div><noscript>'.esc_html__('Enable JavaScript to use the visual editor.','google-reviews-for-wordpress').'</noscript></div>'; }
     public static function settings(array $s): array { return ['analytics'=>filter_var(is_scalar($s['analytics']??null)?$s['analytics']:false,FILTER_VALIDATE_BOOLEAN),'consent_required'=>filter_var(is_scalar($s['consent_required']??null)?$s['consent_required']:false,FILTER_VALIDATE_BOOLEAN),'delete_data'=>filter_var(is_scalar($s['delete_data']??null)?$s['delete_data']:false,FILTER_VALIDATE_BOOLEAN),'retention'=>max(1,min(730,absint(is_scalar($s['retention']??null)?$s['retention']:90)))]; }
     public static function routes(): void {
-        foreach (['state','scraper','identify','listing_preview','location','widget','preview','import','moderate','manual','sync','google','places','bulk','settings','tools','export'] as $action) {
+        foreach (['state','collector','scraper','identify','listing_preview','location','widget','preview','import','moderate','manual','sync','google','places','bulk','settings','tools','export'] as $action) {
             register_rest_route('grw/v1','/'.$action,['methods'=>$action==='state'?'GET':'POST','permission_callback'=>[Security::class,'can'],'callback'=>fn($r)=>self::handle($action,$r)]);
         }
         register_rest_route('grw/v1','/live-widget',['methods'=>'POST','permission_callback'=>'__return_true','callback'=>[Places::class,'public_widget']]);
@@ -48,6 +48,7 @@ final class Admin {
         foreach ($in as $key=>$value) { if (!in_array($key,['config','rows','ids','settings','locations'],true) && $value!==null && !is_scalar($value)) { return Security::error('Invalid field type: '.sanitize_key($key)); } }
         switch ($action) {
             case 'state': return self::state($r);
+            case 'collector': return LocalCollector::configure($in);
             case 'scraper': return Scraper::handle($in);
             case 'identify': return Security::identify((string)($in['input']??''));
             case 'listing_preview':

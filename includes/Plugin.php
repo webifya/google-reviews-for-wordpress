@@ -6,6 +6,7 @@ final class Plugin {
         load_plugin_textdomain('google-reviews-for-wordpress',false,dirname(plugin_basename(GRW_FILE)).'/languages');
         if (get_option('grw_db_version')!==GRW_VERSION) { Installer::activate(); }
         add_action('grw_tick',[Sync::class,'tick']);
+        add_action('grw_browser_local',[LocalCollector::class,'run']);
         add_action('admin_menu',[Admin::class,'menu']);
         add_action('admin_menu',[Admin::class,'secondary_menu']);
         add_action('admin_enqueue_scripts',[Admin::class,'assets']);

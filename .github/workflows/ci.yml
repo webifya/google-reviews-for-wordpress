@@ -36,6 +36,7 @@ jobs:
         run: |
           find . -name '*.php' -print0 | xargs -0 -n1 php -l
           npm run check
+          npm ci
           python3 scripts/package.py /tmp/google-reviews-for-wordpress-v1.5.0.zip
       - name: Install clean WordPress from package
         run: |
@@ -83,6 +84,10 @@ jobs:
           npx playwright install --with-deps chromium firefox webkit
       - name: Prepare isolated WordPress SQLite site
         run: bash scripts/browser-site.sh
+      - name: Bundled collector process tests
+        run: |
+          GRW_WP_ROOT=/tmp/grw-browser/wordpress GRW_NODE=$(command -v node) GRW_BROWSER_PATH=$(node -e "process.stdout.write(require('playwright').chromium.executablePath())") php tests/combined.php | tee /tmp/grw-combined-tests.log
+          grep -q "combined plugin assertions passed" /tmp/grw-combined-tests.log
       - name: Browser regression suite
         run: |
           php -S 127.0.0.1:8097 -t /tmp/grw-browser/wordpress >/tmp/grw-server.log 2>&1 &
