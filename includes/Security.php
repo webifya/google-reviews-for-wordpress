@@ -14,6 +14,7 @@ final class Security {
     }
     public static function maps($value): string {
         $url = self::url($value); $p = wp_parse_url($url);
+        if ($p && isset($p['host'])) { $p['host']=strtolower($p['host']); }
         if (!$p || !in_array(strtolower($p['host']??''), ['www.google.com','google.com','maps.google.com','maps.app.goo.gl','goo.gl'], true)) { return ''; }
         if (($p['host']==='goo.gl' && !str_starts_with($p['path']??'', '/maps/')) || (in_array($p['host'],['www.google.com','google.com'],true) && !preg_match('~^/maps(?:/|$)~',$p['path']??''))) { return ''; }
         return $url;
