@@ -1,0 +1,41 @@
+<?php
+/** Disposable WordPress tests. Every review in this test is a synthetic fixture. */
+require rtrim(getenv('GRW_WP_ROOT'),'/').'/wp-load.php';
+use Webifya\GRW\{Installer,Locations,Sources,Scraper,Sync,Reviews,Renderer,Widgets};
+Installer::activate(); global $wpdb; $n=0;
+function bs($ok,$label){global $n;if(!$ok)throw new RuntimeException($label);echo "PASS: $label\n";$n++;}
+$before=get_option('grw_settings'); $private=[get_option('grw_places_private'),get_option('grw_google_private')];
+$id=Locations::save(['name'=>'SYNTHETIC Browser Test','business_name'=>'SYNTHETIC Browser Test','provider'=>'google_scraper','place_id'=>'ChIJsyntheticBrowser','scraper_enabled'=>true,'frequency'=>259200]);
+bs(is_int($id),'experimental source saves without claiming a license');
+bs(Sources::capabilities('google_scraper')['storage']==='public_browser','browser collection is separate from licensed sources');
+bs(is_wp_error(Locations::save(['name'=>'Bad','provider'=>'google_scraper','place_id'=>'ChIJsyntheticNoOptIn'])),'explicit opt-in required');
+bs(is_wp_error(Locations::save(['name'=>'Bad','provider'=>'google_scraper','scraper_enabled'=>true])),'Place ID required');
+$count=fn()=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}grw_reviews WHERE location_id=%d",$id));
+$row=['external_id'=>'ChZsyntheticReview01','reviewer'=>'SYNTHETIC Reviewer','rating'=>5,'content'=>'SYNTHETIC review fixture','review_date_label'=>'3 months ago'];
+$claim=function()use($id){bs(!empty(Sync::run($id)['queued']),'manual download queues a browser job');bs(!empty(Sync::run($id)['queued']),'duplicate queue is idempotent');$job=Scraper::handle(['action'=>'claim'])['job'];bs($job['id']===$id,'worker claims queued location');bs(Scraper::handle(['action'=>'claim'])['job']===null,'job cannot be claimed twice');return $job;};
+$job=$claim();$payload=['action'=>'result','id'=>$id,'place_id'=>$job['place_id'],'lease'=>$job['lease'],'reason'=>'limited_view','advertised_total'=>21,'rows'=>[$row]];
+bs(is_wp_error(Scraper::handle(array_replace($payload,['lease'=>'bad']))),'invalid lease rejected');
+bs(is_wp_error(Scraper::handle(array_replace($payload,['place_id'=>'ChIJwrongBusiness']))),'wrong business ID rejected');
+bs(is_wp_error(Scraper::handle(array_replace($payload,['rows'=>[$row,$row]]))),'duplicate review IDs rejected before writes');
+bs($count()===0,'invalid callbacks write no rows');
+$result=Scraper::handle($payload);bs($result['added']===1&&$count()===1,'public page review stored');
+bs(!$result['complete']&&$result['advertised_total']===21&&$result['accessible_count']===1,'partial results distinguish advertised and accessible totals');
+bs(is_wp_error(Scraper::handle($payload)),'completed callback cannot be replayed');
+$l=Locations::get($id);bs(abs((int)$l['next_sync']-time()-259200)<5,'successful collection schedules 72-hour check');
+$rows=Reviews::query(['connected'=>true,'locations'=>[$id]],1,100);bs(count($rows)===1&&$rows[0]['source_type']==='scraped'&&$rows[0]['license_reference']==='','scraped rows have honest provenance and no fabricated license');
+bs($rows[0]['review_date']===null&&$rows[0]['review_date_label']==='3 months ago','relative date retained without inventing a timestamp');
+$wid=Widgets::save(['name'=>'SYNTHETIC browser widget','config'=>['source'=>'connected','locations'=>[$id]]]);$html=Renderer::render($wid);
+bs(str_contains($html,'SYNTHETIC review fixture')&&str_contains($html,'3 months ago'),'existing carousel displays collected review and date label');
+bs(!str_contains($html,'Licensed connected source'),'carousel does not label scraped data licensed');
+$job=$claim();$payload['lease']=$job['lease'];$r=Scraper::handle($payload);bs($r['unchanged']===1&&$count()===1,'repeat download deduplicates stable review ID');
+$job=$claim();$payload['lease']=$job['lease'];$payload['rows'][0]['content']='SYNTHETIC edited review';$r=Scraper::handle($payload);bs($r['updated']===1&&$count()===1,'edited review updates existing row');
+$job=$claim();$payload['lease']=$job['lease'];$payload['reason']='captcha';$r=Scraper::handle($payload);bs($r['stopped']&&$count()===1,'CAPTCHA stops collection and preserves prior reviews');
+bs((int)Locations::get($id)['next_sync']===0,'CAPTCHA requires manual retry instead of bypass or repeated requests');
+bs(count(Reviews::query(['connected'=>true,'locations'=>[$id]]))===1,'stored reviews survive temporary collection failure');
+Locations::save(['id'=>$id,'frequency'=>86400]);$job=$claim();$payload['lease']=$job['lease'];$payload['reason']='limited_view';Scraper::handle($payload);bs(abs((int)Locations::get($id)['next_sync']-time()-86400)<5,'daily interval supported');
+$wpdb->update($wpdb->prefix.'grw_locations',['next_sync'=>time()-1],['id'=>$id]);Sync::tick();bs(get_option('grw_browser_job_'.$id)['state']==='queued','due WP-Cron job enters browser queue');
+$job=Scraper::handle(['action'=>'claim'])['job'];Locations::save(['id'=>$id,'place_id'=>'ChIJchangedBusiness']);$payload['lease']=$job['lease'];bs(is_wp_error(Scraper::handle($payload)),'business change invalidates in-flight callback');Sources::clear_scope();bs(!Reviews::query(['connected'=>true,'locations'=>[$id]]),'previous-business reviews excluded from current carousel');
+$job=get_option('grw_browser_job_'.$id);$job['expires']=time()-1;update_option('grw_browser_job_'.$id,$job,false);Scraper::expire();bs(!get_option('grw_browser_job_'.$id),'stalled worker lease expires');
+do_action('rest_api_init');wp_set_current_user(0);$req=new WP_REST_Request('POST','/grw/v1/scraper');$req->set_body_params(['action'=>'claim']);bs(in_array(rest_get_server()->dispatch($req)->get_status(),[401,403],true),'anonymous worker endpoints denied');
+bs(get_option('grw_settings')===$before&&[get_option('grw_places_private'),get_option('grw_google_private')]===$private,'privacy settings and encrypted historical credentials preserved');
+$wpdb->delete($wpdb->prefix.'grw_widgets',['id'=>$wid]);$wpdb->delete($wpdb->prefix.'grw_reviews',['location_id'=>$id]);$wpdb->delete($wpdb->prefix.'grw_logs',['location_id'=>$id]);$wpdb->delete($wpdb->prefix.'grw_locations',['id'=>$id]);foreach(['grw_sync_counts_','grw_sync_error_','grw_browser_job_','grw_browser_claim_','grw_browser_result_']as $prefix)delete_option($prefix.$id);Sources::clear_scope();echo "$n browser collector assertions passed; genuine Google requests in this suite: 0\n";

@@ -18,6 +18,10 @@ final class Locations {
         $data = ['provider'=>$provider,'active'=>!array_key_exists('active',$input)||!empty($input['active']),'frequency'=>in_array((int)($input['frequency']??259200),[0,43200,86400,172800,259200,432000,604800],true)?(int)($input['frequency']??259200):259200];
         foreach (['business_name','address','country','place_id','cid','google_parent'] as $key) { $data[$key] = sanitize_text_field($input[$key] ?? ''); }
         if ($provider==='google_business' && (!preg_match('/^accounts\/\d+\/locations\/\d+$/',$data['google_parent']) || empty($input['identity_confirmed']))) { return Security::error('Select your owned business and confirm its identity'); }
+        if ($provider==='google_scraper') {
+            $data['scraper_enabled']=!empty($input['scraper_enabled']);
+            if (!$data['place_id'] || !$data['scraper_enabled']) { return Security::error('Browser collection requires a Place ID and explicit experimental collection opt-in.'); }
+        }
         $data['identity_confirmed']=!empty($input['identity_confirmed']);
         if ($data['cid'] && !preg_match('/^\d{1,24}$/',$data['cid'])) { return Security::error(__('CID must be numeric.', 'google-reviews-for-wordpress')); }
         if ($data['place_id'] && !preg_match('/^[A-Za-z0-9_-]{5,200}$/', $data['place_id'])) { return Security::error(__('Invalid Place ID.', 'google-reviews-for-wordpress')); }

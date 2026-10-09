@@ -28,6 +28,7 @@ final class Installer {
  rating tinyint unsigned NULL,
  content longtext NOT NULL,
  review_date datetime NULL,
+ review_date_label varchar(190) NOT NULL DEFAULT '',
  permalink text NOT NULL,
  source_name varchar(190) NOT NULL,
  source_url text NOT NULL,

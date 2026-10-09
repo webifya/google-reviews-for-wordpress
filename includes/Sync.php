@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) { exit; }
 final class Sync {
     public static function log(int $id,string $message): void { global $wpdb; $wpdb->insert($wpdb->prefix.'grw_logs',['location_id'=>$id,'message'=>substr(sanitize_text_field($message),0,2000),'created_at'=>current_time('mysql',true)]); }
     public static function tick(): void {
-        global $wpdb;
+        global $wpdb; Scraper::expire();
         $due=$wpdb->get_col($wpdb->prepare("SELECT id FROM {$wpdb->prefix}grw_locations WHERE next_sync>0 AND next_sync<=%d ORDER BY next_sync LIMIT 5",time()));
         foreach ($due as $id) { $location=Locations::get((int)$id); if ($location && !Sources::eligible($location)) { $wpdb->update($wpdb->prefix.'grw_locations',['next_sync'=>0],['id'=>$id]); continue; } self::run((int)$id); }
         $s=get_option('grw_settings',[]); GoogleBusiness::cleanup(); $days=max(1,min(730,absint($s['retention']??90)));
@@ -16,6 +16,7 @@ final class Sync {
         if (!$location) { return Security::error('Unknown location'); }
         $data=json_decode($location['data'],true); $provider=Sources::all()[$data['provider']]??null;
         if (!Sources::eligible($location)) { return Security::error('Action required: this location has no active authorized synchronization provider.'); }
+        if (($data['provider']??'')==='google_scraper') { return Scraper::queue($location); }
         $key='grw_lock_'.$id; $now=time();
         $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->options} WHERE option_name=%s AND CAST(option_value AS UNSIGNED)<%d",$key,$now-600)); wp_cache_delete($key,'options');
         if (!add_option($key,$now,'','no')) { return Security::error('Synchronization already running',409); }

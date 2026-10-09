@@ -1,33 +1,33 @@
 # Google Reviews for WordPress
 
-**1.4.1-rc.1 — setup simplification candidate. Direct API-free Google review downloading remains blocked.**
+**1.5.0-rc.1 — experimental public-page browser collector.**
 
-The primary admin no longer asks for Google Cloud, API keys, billing or a Google account. Add a Google Maps URL or Place ID, validate its syntax locally, open the listing to confirm the business and enter your own label/address. This identifies your saved listing; it does not download business metadata or reviews.
+The collector visits a public Google Maps business page, opens its visible reviews, expands text, and stores accessible reviews in the existing WordPress tables. A separate Node/Chromium worker is required. No Google API key or account is used. Collection stops at CAPTCHA, sign-in or access denial.
 
-No documented permitted API-free feed was established for all public/non-owned Google reviews and an independently stored custom carousel. A public URL is not an export license. No scraper, private endpoint, fake Download button or synthetic customer claim is installed. [Dated official-source investigation](docs/PHASE7-ACCESS-FINDINGS.md).
+A visible-browser live test on the supplied Menjar Financial listing retrieved **5 of 21 advertised reviews**. Other visible-browser and headless runs returned no review cards. Those five captured reviews were stored through the authenticated local WordPress endpoint. A full archive, dependable unattended operation and an elapsed live 24/72-hour cycle are **not established**. This is a prototype, not a stable review-download release. The user's revised scope does not grant a Google storage/republication license.
 
 ## Install and use
 
-1. WordPress 6.4+, PHP 8.1+, MySQL/MariaDB. Back up your database/files, then Upload Plugin and activate or replace the existing candidate. Do not uninstall to upgrade.
-2. Open **Google Reviews → Locations → Add Location**. Enter a Maps URL or Place ID, use **Check listing link**, confirm the business on Google Maps and supply your own business label/address. Save. Retrieval status remains unavailable unless an eligible documented source is installed.
-3. A trusted installed adapter with explicit permanent-storage/public-display rights can be selected under Advanced. **Download available reviews** runs the existing bounded validated sync; partial continuation is labeled accordingly. Sync Now and schedule settings appear for validated stored sources. This is a connector contract, not a bundled live Google feed.
-4. Create/configure a widget and publish `[google_reviews_widget id="123"]`. Existing shortcodes, IDs, saved styles and templates remain compatible. A limit override remains `[google_reviews_widget id="123" limit="20"]`.
-5. New widgets default to 100/newest, autoplay every 5 seconds, looping, hover pause and 3/2/1 responsive cards. Only actual available permitted records render; six records do not become 100.
+1. Back up your site. Upload/replace the plugin ZIP on WordPress 6.4+, PHP 8.1+, without uninstalling the existing plugin.
+2. Install the separate worker on an always-on computer or browser-capable server. It needs Node.js 22+, Chromium and a browser display; PHP-only cPanel hosting is insufficient. [Worker setup](worker/README.md).
+3. Set the worker's private WordPress HTTPS URL, administrator username and application password in its environment. No credential is entered into Google Maps or published in diagnostics. Start the worker.
+4. In **Locations**, enter the full Maps URL/Place ID, confirm the business, select **Google Maps browser collector · experimental**, and enable experimental collection. Existing public listings can use **Enable browser collection**. Saving a listing alone does not download reviews.
+5. Click **Download available reviews**. The job is queued for the worker; refresh after collection. Listing advertised total, accessible current subset, stored accumulated count, and displayable count remain separate. Partial results are explicitly labeled.
+6. **Sync settings** supports daily, every three days (default), 5/7 days, or manual. WordPress cron queues due checks; the browser worker performs them. Quiet sites need a real cron request to `wp-cron.php` every five minutes. Network/layout failures preserve data and retry at the selected interval. CAPTCHA/sign-in/access denial pauses until manual attention.
+7. Create or edit a widget with **Connected review sources**, then publish `[google_reviews_widget id="123"]`. Existing IDs, styles, templates, shortcodes and analytics remain compatible. New widgets retain 100-review limits, five-second autoplay, looping and 3/2/1 responsive cards; only actually available records render.
 
-## Storage and synchronization
+## Storage and compatibility
 
-The existing five plugin tables are reused. Stable provider/business IDs, content hashes, grant/license scope, sync timestamps, bounded pagination and explicit permitted deletion handling are retained. No schema change or rewriting of existing records is required in Phase 7. Listing totals and remotely accessible totals are unknown unless supported data is actually available; they remain separate from stored/displayable counts.
+Stable visible review IDs and content hashes deduplicate repeated checks and update edits/replies. Source/business bindings prevent old business content from appearing under a changed listing. Incomplete public views do not imply deletions. Browser-collected rows are marked `scraped`, separate from licensed adapter rows, without invented license metadata or verification badges.
 
-Validated permitted sources use per-location 1/3/5/7-day/manual schedules, default 72 hours. Locks, retries and cache invalidation are retained. Temporary connection failures preserve previously permitted content and show an attention status. Grant revocation/business/license changes continue to fail closed. Time-limited sources require their own reviewed expiry/purge adapter before use; hiding rows is not a retention purge. [Scheduler/cPanel guide](docs/PHASE6-SYNCHRONIZATION.md).
+The existing tables are reused. An additive `review_date_label` column preserves dates such as “3 months ago” without inventing exact timestamps. Older records remain unchanged. Undated records use database ordering; exact-date filters and historical newest-first guarantees require actual timestamps from the source. Reviewer photos remain URLs; image files are not mirrored.
 
-## Compatibility and privacy
+Existing encrypted Google settings and live Places widgets retain their compatibility behavior. Licensed providers retain their existing validation, scoped display and synchronization. Historical analytics and privacy preferences are preserved. New primary navigation still has no Google key/billing/OAuth prompts or manual/CSV/JSON review imports.
 
-Already configured Places live widgets retain their original live-only path and encrypted credentials. They still require their existing account entitlement and applicable agreement and can return at most five selected reviews. Existing owner integration backend/callbacks remain for compatibility. New primary/secondary admin offers no Google key/OAuth setup. Credentials are retained encrypted until explicit authorized disconnect or uninstall with saved delete-data preference; they are never returned in public/admin exports, HTML or diagnostics. No Google settings are silently deleted or converted into local archives.
+## Verification
 
-Historical reviews, widgets, analytics, privacy opt-outs and map/grid/combined legacy shortcodes remain unchanged. Primary navigation is Dashboard, Locations, Reviews, Widgets, Analytics, Settings. Manual/CSV/JSON review imports, map builders and map-only shortcode publishing remain absent from the normal UI. Retained testimonials/imports keep explicit original provenance.
+PHP integration, source/security, migration and browser tests use isolated synthetic fixtures. Live extraction is reported separately. The collector's tests cover partial counts, expanded text, rating-only reviews, owner replies, identity checks, authenticated callbacks, stale/replayed jobs, duplicate/update handling, scheduling, CAPTCHA stops and preservation of stored reviews.
 
-Fresh-install analytics is enabled with explicit consent required; existing privacy preferences are preserved. Configure your consent manager with `window.grwAnalyticsConsent = true` or `new CustomEvent('grw:consent',{detail:true})`; revoke with detail false. DNT/GPC and admin/preview exclusion remain. Estimates use expiring session tokens, not stored IP addresses. Reviewer images may load from supplied provider URLs; include appropriate public notices.
+Build the plugin with `python3 scripts/package.py` and the separate worker with `python3 scripts/package-worker.py`. Packages exclude fixtures, credentials, downloaded review content and screenshots. Install the worker dependencies with `npm ci` in its own directory.
 
-## Development and verification
-
-Run PHP lint, `npm run check`, the WordPress integration/Phase 3–7 suites, native MySQL/MariaDB CI matrix and Chromium/Firefox/WebKit suites. Tests use clearly synthetic providers and isolated fixture transport. No live Google collection or elapsed 72-hour production cycle is claimed. ZIPs exclude tests, fixtures, private configuration, docs and runtimes. [Starting audit](docs/PHASE7-AUDIT.md), [access findings](docs/PHASE7-ACCESS-FINDINGS.md), [adapter contract](docs/ADAPTERS.md). Prior-phase reports are historical evidence, not current setup instructions.
+[Revised requirements](docs/BROWSER-COLLECTOR-REQUIREMENTS.md), [worker instructions](worker/README.md), [historical access investigation](docs/PHASE7-ACCESS-FINDINGS.md), [licensed adapter contract](docs/ADAPTERS.md). Previous phase reports are historical evidence, not current setup instructions.

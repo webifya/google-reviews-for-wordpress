@@ -36,7 +36,7 @@ jobs:
         run: |
           find . -name '*.php' -print0 | xargs -0 -n1 php -l
           npm run check
-          python3 scripts/package.py /tmp/google-reviews-for-wordpress-v1.4.1.zip
+          python3 scripts/package.py /tmp/google-reviews-for-wordpress-v1.5.0.zip
       - name: Install clean WordPress from package
         run: |
           curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp.phar
@@ -44,25 +44,27 @@ jobs:
           php /tmp/wp.phar core download --path=/tmp/wordpress --version=${{ matrix.wordpress }}
           php /tmp/wp.phar config create --path=/tmp/wordpress --dbname=grw_test --dbuser=root --dbpass=test --dbhost=127.0.0.1:3306
           php /tmp/wp.phar core install --path=/tmp/wordpress --url=http://127.0.0.1:8097 --title=Test --admin_user=grwtest --admin_password=local-test-password --admin_email=test@example.invalid
-          unzip /tmp/google-reviews-for-wordpress-v1.4.1.zip -d /tmp/wordpress/wp-content/plugins
+          unzip /tmp/google-reviews-for-wordpress-v1.5.0.zip -d /tmp/wordpress/wp-content/plugins
           GRW_WP_ROOT=/tmp/wordpress php tests/integration.php
           GRW_WP_ROOT=/tmp/wordpress php tests/phase3.php
           GRW_WP_ROOT=/tmp/wordpress php tests/phase4.php
           GRW_WP_ROOT=/tmp/wordpress php tests/phase5.php
           GRW_WP_ROOT=/tmp/wordpress php tests/phase6.php
           GRW_WP_ROOT=/tmp/wordpress php tests/phase7.php
+          GRW_WP_ROOT=/tmp/wordpress php tests/scraper.php | tee /tmp/grw-scraper-tests.log
+          grep -q "browser collector assertions passed" /tmp/grw-scraper-tests.log
           curl -fsSL https://github.com/webifya/google-reviews-for-wordpress/releases/download/v1.4.0-rc.1/google-reviews-for-wordpress-v1.4.0.zip -o /tmp/grw-previous.zip
           unzip -oq /tmp/grw-previous.zip -d /tmp/wordpress/wp-content/plugins
           php /tmp/wp.phar eval 'global $wpdb; foreach (["locations","reviews","widgets","analytics","logs"] as $table) { $wpdb->query("DROP TABLE IF EXISTS ".$wpdb->prefix."grw_".$table); } delete_option("grw_db_version");' --path=/tmp/wordpress --skip-plugins --skip-themes
           GRW_WP_ROOT=/tmp/wordpress GRW_UPGRADE_MODE=seed GRW_SNAPSHOT=/tmp/grw-upgrade.json php tests/upgrade.php
-          unzip -oq /tmp/google-reviews-for-wordpress-v1.4.1.zip -d /tmp/wordpress/wp-content/plugins
+          unzip -oq /tmp/google-reviews-for-wordpress-v1.5.0.zip -d /tmp/wordpress/wp-content/plugins
           GRW_WP_ROOT=/tmp/wordpress GRW_UPGRADE_MODE=verify GRW_SNAPSHOT=/tmp/grw-upgrade.json php tests/upgrade.php
           GRW_WP_ROOT=/tmp/wordpress php tests/benchmark.php > /tmp/benchmark.json
       - uses: actions/upload-artifact@v4
         with:
           name: plugin-php-${{ matrix.php }}-wp-${{ matrix.wordpress }}-${{ matrix.database }}
           path: |
-            /tmp/google-reviews-for-wordpress-v1.4.1.zip
+            /tmp/google-reviews-for-wordpress-v1.5.0.zip
             /tmp/benchmark.json
   browsers:
     runs-on: ubuntu-latest
@@ -97,6 +99,8 @@ jobs:
           GRW_BROWSER=chromium node tests/phase7-browser.cjs
           GRW_BROWSER=firefox node tests/phase7-browser.cjs
           GRW_BROWSER=webkit node tests/phase7-browser.cjs
+          node tests/scraper-worker.cjs
+          node tests/scraper-browser.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -1,0 +1,9 @@
+{
+  "name": "google-reviews-browser-worker",
+  "version": "1.5.0-rc.1",
+  "private": true,
+  "description": "Experimental public Google Maps page collector for the WordPress review queue",
+  "engines": {"node": ">=22"},
+  "scripts": {"start": "node run.cjs"},
+  "dependencies": {"playwright": "1.62.1"}
+}
