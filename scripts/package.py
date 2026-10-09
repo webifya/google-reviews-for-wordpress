@@ -3,7 +3,7 @@
 from pathlib import Path
 import zipfile,sys
 root=Path(__file__).resolve().parents[1]
-out=Path(sys.argv[1]) if len(sys.argv)>1 else root.parent/'google-reviews-for-wordpress-v1.4.0.zip'
+out=Path(sys.argv[1]) if len(sys.argv)>1 else root.parent/'google-reviews-for-wordpress-v1.4.1.zip'
 include=['google-reviews-for-wordpress.php','uninstall.php','readme.txt','LICENSE','includes','assets','languages']
 files=[]
 for name in include:

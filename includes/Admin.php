@@ -18,7 +18,7 @@ final class Admin {
     public static function page(): void { if (!Security::can()) { return; } echo '<div class="wrap grw-admin"><h1>'.esc_html__('Google Reviews','google-reviews-for-wordpress').'</h1><div id="grw-admin-app"></div><noscript>'.esc_html__('Enable JavaScript to use the visual editor.','google-reviews-for-wordpress').'</noscript></div>'; }
     public static function settings(array $s): array { return ['analytics'=>filter_var(is_scalar($s['analytics']??null)?$s['analytics']:false,FILTER_VALIDATE_BOOLEAN),'consent_required'=>filter_var(is_scalar($s['consent_required']??null)?$s['consent_required']:false,FILTER_VALIDATE_BOOLEAN),'delete_data'=>filter_var(is_scalar($s['delete_data']??null)?$s['delete_data']:false,FILTER_VALIDATE_BOOLEAN),'retention'=>max(1,min(730,absint(is_scalar($s['retention']??null)?$s['retention']:90)))]; }
     public static function routes(): void {
-        foreach (['state','listing_preview','location','widget','preview','import','moderate','manual','sync','google','places','bulk','settings','tools','export'] as $action) {
+        foreach (['state','identify','listing_preview','location','widget','preview','import','moderate','manual','sync','google','places','bulk','settings','tools','export'] as $action) {
             register_rest_route('grw/v1','/'.$action,['methods'=>$action==='state'?'GET':'POST','permission_callback'=>[Security::class,'can'],'callback'=>fn($r)=>self::handle($action,$r)]);
         }
         register_rest_route('grw/v1','/live-widget',['methods'=>'POST','permission_callback'=>'__return_true','callback'=>[Places::class,'public_widget']]);
@@ -27,8 +27,8 @@ final class Admin {
     private static function state(\WP_REST_Request $r): array {
         global $wpdb; $settings=get_option('grw_settings',[]);
         $page=max(1,absint($r->get_param('page')??1));
-        $counts=$wpdb->get_results("SELECT location_id,COUNT(*) total FROM {$wpdb->prefix}grw_reviews GROUP BY location_id",OBJECT_K);
-        $locations=Locations::all(); $scope=Sources::scope(); $sql="SELECT r.location_id,COUNT(*) total FROM {$wpdb->prefix}grw_reviews r WHERE r.source_type='licensed' AND ".$scope['where']." GROUP BY r.location_id"; $accessible=$wpdb->get_results($scope['args']?$wpdb->prepare($sql,...$scope['args']):$sql,OBJECT_K); foreach ($locations as &$location) { $location['review_connection']=Sources::connection($location,(int)($accessible[$location['id']]->total??0)); $location['saved_count']=(int)($counts[$location['id']]->total??0); $location['presentation']=Locations::presentation($location); $location['listing_url']=Locations::listing_url(json_decode($location['data'],true)?:[]); } unset($location);
+        $counts=$wpdb->get_results("SELECT location_id,COUNT(*) total,SUM(CASE WHEN published=1 AND source_type<>'licensed' THEN 1 ELSE 0 END) displayable FROM {$wpdb->prefix}grw_reviews GROUP BY location_id",OBJECT_K);
+        $locations=Locations::all(); $scope=Sources::scope(); $sql="SELECT r.location_id,COUNT(*) total,SUM(CASE WHEN r.published=1 THEN 1 ELSE 0 END) displayable FROM {$wpdb->prefix}grw_reviews r WHERE r.source_type='licensed' AND ".$scope['where']." GROUP BY r.location_id"; $accessible=$wpdb->get_results($scope['args']?$wpdb->prepare($sql,...$scope['args']):$sql,OBJECT_K); foreach ($locations as &$location) { $location['review_connection']=Sources::connection($location,(int)($accessible[$location['id']]->total??0)); $location['saved_count']=(int)($counts[$location['id']]->total??0); $location['display_count']=(int)($accessible[$location['id']]->displayable??0)+(int)($counts[$location['id']]->displayable??0); $location['presentation']=Locations::presentation($location); $location['listing_url']=Locations::listing_url(json_decode($location['data'],true)?:[]); } unset($location);
         $filters=['admin'=>true,'search'=>sanitize_text_field($r->get_param('search')??''),'locations'=>Security::ids($r->get_param('locations')??[]),'visibility'=>sanitize_text_field($r->get_param('visibility')??''),'source'=>sanitize_key($r->get_param('source')??''),'minimum'=>absint($r->get_param('minimum')??0),'sort'=>sanitize_key($r->get_param('sort')??'latest'),'from'=>sanitize_text_field($r->get_param('from')??''),'to'=>sanitize_text_field($r->get_param('to')??'')];
         $ids=array_map(fn($l)=>(int)$l['id'],array_filter($locations,fn($l)=>$l['review_connection']['capabilities']['storage']==='licensed_permanent'&&!empty($l['active'])));
         $requested=Security::ids($r->get_param('locations')??[]); $view_ids=$requested?array_values(array_intersect($ids,$requested)):$ids;
@@ -48,6 +48,7 @@ final class Admin {
         foreach ($in as $key=>$value) { if (!in_array($key,['config','rows','ids','settings','locations'],true) && $value!==null && !is_scalar($value)) { return Security::error('Invalid field type: '.sanitize_key($key)); } }
         switch ($action) {
             case 'state': return self::state($r);
+            case 'identify': return Security::identify((string)($in['input']??''));
             case 'listing_preview':
                 $embed=Security::embed($in['embed_url']??'');
                 if (!empty($in['embed_url']) && !$embed) { return Security::error('Use the official Google Maps Share → Embed a map iframe or its HTTPS src URL.'); }

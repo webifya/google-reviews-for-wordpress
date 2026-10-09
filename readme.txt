@@ -4,38 +4,39 @@ Tags: reviews, carousel, google maps
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.4.0-rc.1
+Stable tag: 1.4.1-rc.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Permitted local review carousels, three-day synchronization and consent-aware analytics.
 
 == Description ==
-Review-first setup: add a business, connect a supported source, test retrieval, customize a carousel and publish its shortcode. Navigation: Dashboard, Locations, Reviews, Widgets, Analytics, Settings.
-Google Places API (New) supports non-owned listings with up to five Google-selected reviews. Billing, a restricted API key and applicable agreement/terms/privacy are required. Reviews load live without WordPress storage or page-cached content. JavaScript is required. Local stored synchronization defaults to 72 hours and needs an installed provider with documented permanent storage/public display rights. No such live feed was verified. This is a candidate, not proof of production Google retrieval.
-New widgets default to 100 newest reviews, 5-second autoplay, looping, hover pause and 3/2/1 cards. Fresh-install analytics is enabled with explicit consent; saved privacy preferences are preserved.
-Legacy records, widget IDs, analytics and map/grid/combined shortcodes remain compatible. Upload/manual/map builders are removed from normal UI. No scraping or fake verification indicators.
+Review carousels from permitted local collections. Primary navigation: Dashboard, Locations, Reviews, Widgets, Analytics, Settings. New setup has no Google Cloud/key/billing/OAuth prompts. Maps URL/Place ID validation is local only; a public listing does not grant review access or storage rights. Direct API-free downloading remains blocked; no scraper or fake download control is installed.
+Download/sync actions require an installed functioning permitted source. Default local interval: 72 hours. No real licensed feed or elapsed live three-day cycle was verified. Existing live Places widgets retain their configured limited live-only behavior; no credentials or records are silently deleted.
+New widgets: 100 newest reviews, 5-second autoplay, loop, hover pause, 3/2/1 cards. Fresh analytics enabled with explicit consent; existing privacy/settings/history preserved. Legacy widget IDs, styles, shortcodes and analytics remain compatible. Review upload/manual/map builders are absent from primary UI.
 
 == Installation ==
-1. Upload and activate the ZIP via Plugins > Add New > Upload Plugin.
-2. Add a location by Maps business URL or Place ID and confirm its identity.
-3. Open Settings > Review connections and privately configure Google Places API (New), billing and a restricted server key. Set Google project quotas and the site's request budget.
-4. Test retrieval, preview actual returned reviews, create a review widget and copy [google_reviews_widget id="123"].
-5. For an installed licensed stored source, validate retrieval then choose 1, 3 (default), 5 or 7 days or manual only. Use Sync Now or Sync settings on the location. Configure consent/privacy before visitor analytics. Upgrade by replacing the plugin ZIP, not uninstalling.
+1. Back up your site; upload/activate or replace the ZIP via Plugins > Add New > Upload Plugin. Do not uninstall to upgrade.
+2. Locations > Add Location: enter Maps URL/Place ID, Check listing link, confirm business manually and save your label/address. No reviews are downloaded by saving.
+3. Eligible installed permitted sources can use Download available reviews and validated local scheduling. Without one, retrieval remains unavailable with an explicit explanation.
+4. Create a widget and paste [google_reviews_widget id="123"] into a page.
 
 == Frequently Asked Questions ==
-= Does a Maps URL retrieve all reviews without a key? =
-No. Places needs a key and supplies up to five selected reviews; share URLs without a Place ID require manual ID entry.
-= Does Places support daily stored review synchronization? =
-No. Google review caching restrictions prevent this implementation from maintaining an archive. A permitted licensed provider is needed.
-= Does saving credentials mean Connected? =
-No. Review retrieval must successfully return individual reviews.
+= Can I download all Google reviews without an API or provider? =
+No documented permitted direct mechanism was established. Actual accessible counts remain unknown. Public listing visibility is not independent archive permission.
+= What happens to existing keys and widgets? =
+Encrypted Google settings, IDs, local records and analytics are retained. Existing configured live widgets keep their compatibility path. No new Google account setup is offered in the UI.
+= Do 72-hour updates work? =
+The existing scheduler works with eligible permitted adapters and synthetic tests. No genuine live provider or full production 72-hour cycle was verified.
 = What does uninstall remove? =
-Private credentials are always removed. Other plugin data is retained unless deletion is explicitly enabled. Deactivation preserves data.
+By default data is retained. Deactivation preserves all records/settings. Uninstall deletes plugin data only if its existing explicit delete-data preference is enabled.
 = What external services are used? =
-Google Places calls places.googleapis.com from WordPress using your encrypted server key; live display contacts supplied reviewer image hosts. Google Maps attribution/source links are retained. Review Google's service terms (https://cloud.google.com/maps-platform/terms/maps-service-terms), Places policy (https://developers.google.com/maps/documentation/places/web-service/policies), pricing (https://developers.google.com/maps/billing-and-pricing/pricing) and privacy (https://policies.google.com/privacy). Google account/OAuth/Business Profile endpoints are optional owner-dashboard tools (https://developers.google.com/my-business/content/policies). Existing map shortcodes contact Google through their saved official iframe. Purge page caches after key changes; never cache live-widget POST REST responses.
+New identifier validation uses no external service. Stored shortcodes do not fetch a provider. Existing configured live widgets may call Places API server-side and load supplied avatars/attribution URLs; legacy owner access may call its configured OAuth/Google services. A separately installed permitted connector may use its documented host. Read the repository source/retention/privacy documentation.
 
 == Changelog ==
+= 1.4.1-rc.1 =
+Remove key/billing/OAuth setup from administration, validate Maps identifiers locally and show truthful source/count/blocker status. Preserve credentials, existing live widgets, local tables, styles, analytics and shortcodes. No direct Google downloader is claimed.
+
 = 1.4.0-rc.1 =
 Default 72-hour synchronization and 1/3/5/7-day/manual choices; only validated licensed sources schedule. Local provenance, stable-ID deduplication, last-sync timestamps, explicit provider-removal handling, resumed statistics and safe errors. Simple advanced identifiers, actual saved/access counts, dashboard views/dates, accurate Sync Now notices and fresh-install consent-gated analytics. Preserve existing intervals, privacy settings, carousel, shortcodes and data. Includes unpublished Phase 5 research/reliability groundwork. Live non-owned retrieval/local archive remains blocked by account/license requirements.
 

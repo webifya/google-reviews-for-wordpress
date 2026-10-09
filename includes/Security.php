@@ -18,6 +18,17 @@ final class Security {
         if (($p['host']==='goo.gl' && !str_starts_with($p['path']??'', '/maps/')) || (in_array($p['host'],['www.google.com','google.com'],true) && !preg_match('~^/maps(?:/|$)~',$p['path']??''))) { return ''; }
         return $url;
     }
+    /** Parse only administrator-supplied identifiers. No HTTP, business lookup or review access. */
+    public static function identify(string $input) {
+        $input=trim($input);
+        if (!$input || strlen($input)>2048) { return self::error('Enter a Google Maps URL or Place ID, at most 2048 characters.'); }
+        $url=self::maps($input); $id=Places::id($input);
+        if (!$url && !$id) { return self::error('Use an official HTTPS Google Maps listing URL or valid Place ID.'); }
+        $q=[]; if ($url) { parse_str(wp_parse_url($url,PHP_URL_QUERY)?:'',$q); }
+        $cid=is_string($q['cid']??null)&&preg_match('/^\d{1,24}$/',$q['cid'])?$q['cid']:'';
+        $listing=$url?:'https://www.google.com/maps/search/?'.http_build_query(['api'=>1,'query'=>$id,'query_place_id'=>$id],'','&',PHP_QUERY_RFC3986);
+        return ['maps_url'=>$url,'place_id'=>$id,'cid'=>$cid,'listing_url'=>$listing,'verified'=>false,'reviews_retrieved'=>false];
+    }
     /** Resolve official share redirects only; never read review HTML or infer ownership. */
     public static function resolve_maps(string $value) {
         $url=self::maps($value); if (!$url || strlen($url)>2048) { return self::error('Use an official HTTPS Google Maps sharing link'); }
