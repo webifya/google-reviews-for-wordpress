@@ -21,7 +21,7 @@ async function main(){
  do{
   const {job}=await api({action:'claim'});
   if(job){
-   let result;try{result=await collect(job);}catch{result={rows:[],advertised_total:null,reason:'network_error'};}
+   let result;try{result=await collect({url:job.url,business_name:job.business_name,maximum:job.maximum});}catch{result={rows:[],advertised_total:null,reason:'network_error'};}
    const saved=await api({action:'result',id:job.id,lease:job.lease,place_id:job.place_id,...result});
    console.log(JSON.stringify({location:job.id,retrieved:result.rows.length,reason:result.reason,added:saved.added||0,updated:saved.updated||0}));
   }
