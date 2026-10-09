@@ -3,10 +3,17 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      browser_scope:
+        description: Browser checks to run (collector uses previous unchanged regression results)
+        type: choice
+        options: [full, collector]
+        default: full
 permissions:
   contents: read
 jobs:
   integration:
+    if: inputs.browser_scope != 'collector'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -89,6 +96,7 @@ jobs:
           GRW_WP_ROOT=/tmp/grw-browser/wordpress GRW_NODE=$(command -v node) GRW_BROWSER_PATH=$(node -e "process.stdout.write(require('playwright').chromium.executablePath())") php tests/combined.php | tee /tmp/grw-combined-tests.log
           grep -q "combined plugin assertions passed" /tmp/grw-combined-tests.log
       - name: Browser regression suite
+        if: inputs.browser_scope != 'collector'
         run: |
           php -S 127.0.0.1:8097 -t /tmp/grw-browser/wordpress >/tmp/grw-server.log 2>&1 &
           sleep 2
@@ -101,6 +109,16 @@ jobs:
           GRW_BROWSER=chromium node tests/phase6-browser.cjs
           GRW_BROWSER=firefox node tests/phase6-browser.cjs
           GRW_BROWSER=webkit node tests/phase6-browser.cjs
+          GRW_BROWSER=chromium node tests/phase7-browser.cjs
+          GRW_BROWSER=firefox node tests/phase7-browser.cjs
+          GRW_BROWSER=webkit node tests/phase7-browser.cjs
+          node tests/scraper-worker.cjs
+          node tests/scraper-browser.cjs
+      - name: Affected collector browser checks
+        if: inputs.browser_scope == 'collector'
+        run: |
+          php -S 127.0.0.1:8097 -t /tmp/grw-browser/wordpress >/tmp/grw-server.log 2>&1 &
+          sleep 2
           GRW_BROWSER=chromium node tests/phase7-browser.cjs
           GRW_BROWSER=firefox node tests/phase7-browser.cjs
           GRW_BROWSER=webkit node tests/phase7-browser.cjs
