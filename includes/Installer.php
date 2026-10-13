@@ -76,6 +76,7 @@ final class Installer {
  PRIMARY KEY  (id),
  KEY created_at (created_at)
 ) $c;");
+        if (get_option('grw_db_version')!==GRW_VERSION) { GoogleBusiness::cleanup(true); }
         update_option('grw_db_version', GRW_VERSION, false);
         add_option('grw_settings', ['analytics'=>true,'retention'=>90,'delete_data'=>false,'consent_required'=>true]);
         add_option('grw_onboarding', true);

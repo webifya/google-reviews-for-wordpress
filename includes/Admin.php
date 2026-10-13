@@ -21,6 +21,7 @@ final class Admin {
         foreach (['state','collector','scraper','identify','listing_preview','location','widget','preview','import','moderate','manual','sync','google','places','bulk','settings','tools','export'] as $action) {
             register_rest_route('grw/v1','/'.$action,['methods'=>$action==='state'?'GET':'POST','permission_callback'=>[Security::class,'can'],'callback'=>fn($r)=>self::handle($action,$r)]);
         }
+        register_rest_route('grw/v1','/business-widget',['methods'=>'POST','permission_callback'=>'__return_true','callback'=>[GoogleBusiness::class,'public_widget']]);
         register_rest_route('grw/v1','/live-widget',['methods'=>'POST','permission_callback'=>'__return_true','callback'=>[Places::class,'public_widget']]);
         register_rest_route('grw/v1','/events',['methods'=>'POST','permission_callback'=>'__return_true','callback'=>[Analytics::class,'collect'],'args'=>[]]);
     }
@@ -100,10 +101,12 @@ final class Admin {
                 if ($ga==='authorize') { return GoogleBusiness::authorize(); }
                 if ($ga==='disconnect') { return GoogleBusiness::disconnect(); }
                 $cursor=$in['cursor']??null; if ($cursor!==null && (!is_string($cursor) || strlen($cursor)>2048)) { return Security::error('Invalid Google page cursor'); }
-                if ($ga==='accounts') { return GoogleBusiness::accounts($cursor); }
-                if ($ga==='locations') { return GoogleBusiness::locations(is_string($in['account']??null)?$in['account']:'',$cursor); }
-                if ($ga==='reviews') { return GoogleBusiness::reviews(absint($in['id']??0),$cursor); }
-                return GoogleBusiness::status();
+                if ($ga==='accounts') { $result=GoogleBusiness::accounts($cursor); return is_wp_error($result)?$result:new \WP_REST_Response($result,200,['Cache-Control'=>'no-store, private, max-age=0']); }
+                if ($ga==='locations') { $result=GoogleBusiness::locations(is_string($in['account']??null)?$in['account']:'',$cursor); return is_wp_error($result)?$result:new \WP_REST_Response($result,200,['Cache-Control'=>'no-store, private, max-age=0']); }
+                if ($ga==='bind') { $result=GoogleBusiness::bind($in); }
+                elseif ($ga==='reviews') { $result=GoogleBusiness::reviews(absint($in['id']??0),$cursor,!empty($in['force'])); }
+                else { return GoogleBusiness::status(); }
+                return is_wp_error($result)?$result:new \WP_REST_Response($result,200,['Cache-Control'=>'no-store, private, max-age=0']);
             case 'bulk':
                 $ids=Security::ids($in['ids']??[]); $act=sanitize_key($in['action']??'');
                 if (count($ids)>100 || !$ids) { return Security::error('Select 1–100 saved reviews'); }

@@ -7,16 +7,18 @@ final class Renderer {
         wp_enqueue_script('grw-front',plugins_url('assets/frontend.js',GRW_FILE),[],GRW_VERSION,true);
         wp_localize_script('grw-front','GRW_STRINGS',['close'=>__('Close','google-reviews-for-wordpress'),'review'=>__('Review','google-reviews-for-wordpress'),'of'=>__('of','google-reviews-for-wordpress')]);
     }
-    public static function render(int $id,array $override=[],bool $preview=false,bool $live=false): string {
+    public static function render(int $id,array $override=[],bool $preview=false,bool $live=false,?array $businessRows=null): string {
         $widget=Widgets::get($id); if (!$widget && $preview && $id===0) { $widget=['name'=>__('Draft preview','google-reviews-for-wordpress'),'config'=>wp_json_encode(Widgets::defaults())]; } if (!$widget) { return ''; }
         $stored=json_decode($widget['config'],true)?:[]; if (!array_key_exists('empty_mode',$stored)) { $stored['empty_mode']='message'; }
         $c=Widgets::sanitize(array_merge($stored,$override)); if (!$c['active']) { return ''; } self::assets();
         if (!$c['locations']) { $c['locations']=array_map(fn($loc)=>(int)$loc['id'],array_filter(Locations::all(),fn($loc)=>!empty($loc['active']))); }
+        $business=GoogleBusiness::public_locations($c);
+        if ($business && !$preview && !$live && $c['template']!=='embed') { ob_start(); if (did_action('wp_head') && !wp_style_is('grw-front','done')) { wp_print_styles('grw-front'); } $styles=ob_get_clean(); return $styles. '<div class="grw-live" data-grw-live="'.esc_attr(wp_json_encode(['id'=>$id,'token'=>GoogleBusiness::token($id),'sort'=>$c['sort'],'limit'=>$c['limit'],'empty'=>$c['empty_mode']==='message'?$c['empty_message']:'','endpoint'=>rest_url('grw/v1/business-widget')])).'" aria-live="polite"></div>'; }
         $places=array_filter($c['locations'],function($locid){ $l=Locations::get($locid); $d=$l?json_decode($l['data'],true):[]; return !empty($d['active']) && ($d['provider']??'')==='google_places'; });
-        if ($places && !$preview && !$live && $c['template']!=='embed') { ob_start(); if (did_action('wp_head') && !wp_style_is('grw-front','done')) { wp_print_styles('grw-front'); } $styles=ob_get_clean(); return $styles.'<div class="grw-live" data-grw-live="'.esc_attr(wp_json_encode(['id'=>$id,'token'=>Places::token($id,Security::can()),'admin_preview'=>Security::can(),'limit'=>$c['limit'],'empty'=>$c['empty_mode']==='message'?$c['empty_message']:'','endpoint'=>rest_url('grw/v1/live-widget')])).'" aria-live="polite"></div>'; }
+        if (!$business && $places && !$preview && !$live && $c['template']!=='embed') { ob_start(); if (did_action('wp_head') && !wp_style_is('grw-front','done')) { wp_print_styles('grw-front'); } $styles=ob_get_clean(); return $styles.'<div class="grw-live" data-grw-live="'.esc_attr(wp_json_encode(['id'=>$id,'token'=>Places::token($id,Security::can()),'admin_preview'=>Security::can(),'limit'=>$c['limit'],'empty'=>$c['empty_mode']==='message'?$c['empty_message']:'','endpoint'=>rest_url('grw/v1/live-widget')])).'" aria-live="polite"></div>'; }
         $query=$c; if ($c['source']==='connected') { $query['source']=''; $query['connected']=true; $query['locations']=array_values(array_filter($c['locations'],function($locid){$l=Locations::get($locid);$d=$l?json_decode($l['data'],true):[];return in_array(Sources::capabilities($d['provider']??'public')['storage'],['licensed_permanent','public_browser'],true);})); }
         $rows=$c['source']==='connected'&&!$query['locations']?[]:Reviews::query($query,1,(int)$c['limit']);
-        if ($places && $c['template']!=='embed') {
+        if (!$business && $businessRows===null && $places && $c['template']!=='embed') {
             // Distinguish Google content from retained legacy records: never mix them in one collection.
             $rows=[]; foreach (array_slice(array_values($places),0,5) as $locid) { $response=Places::retrieve($locid); if (is_wp_error($response)) { break; } array_push($rows,...$response['reviews']); }
             $rows=array_values(array_filter($rows,fn($r)=>$r['rating'] >= $c['minimum']));
@@ -24,6 +26,8 @@ final class Renderer {
             if ($sort==='random') { shuffle($rows); } $rows=array_slice($rows,0,$c['limit']);
             $c['show_map']=false; $c['show_maps']=false; $c['show_summary']=false; $c['show_name']=true; $c['show_avatar']=true; $c['show_date']=true; $c['selected']=[]; if (in_array($c['sort'],['manual','featured'],true)) { $c['sort']='Google relevance'; }
         }
+        if ($businessRows!==null) { $rows=$businessRows; $c['show_summary']=false; $c['show_name']=true; $c['show_avatar']=true; $c['show_date']=true; $c['selected']=[]; }
+        if ($business && $preview && $businessRows===null) { $rows=[]; foreach ($business as $lid) { $page=GoogleBusiness::reviews((int)$lid); if (is_wp_error($page)) { break; } $part=GoogleBusiness::rows((int)$lid,$page); if (!is_wp_error($part)) { array_push($rows,...$part); } } $rows=array_slice(array_values(array_filter($rows,fn($r)=>$r['rating']>=$c['minimum'])),0,$c['limit']); $c['show_summary']=false; }
         if (!$rows && !$preview && $c['template']!=='embed' && $c['empty_mode']==='hide') { return ''; }
 
         $vars=[];
@@ -56,7 +60,8 @@ final class Renderer {
             </div>
             <?php }
         }
-        if ($places && $rows) { echo '<p class="grw-attribution">Google-selected subset, up to 5 reviews per location. Display order: '.esc_html($c['sort']).'; minimum rating: '.absint($c['minimum']).'. <a href="https://support.google.com/contributionpolicy/answer/7400114" target="_blank" rel="noopener noreferrer">Google review policy</a></p>'; }
+        if ($businessRows!==null && $rows) { echo '<p class="grw-attribution">Google reviews · Business Profile API. Showing the configured selection; review limit '.absint($c['limit']).', minimum rating '.absint($c['minimum']).'.</p>'; }
+        if (!$business && $places && $rows) { echo '<p class="grw-attribution">Google-selected subset, up to 5 reviews per location. Display order: '.esc_html($c['sort']).'; minimum rating: '.absint($c['minimum']).'. <a href="https://support.google.com/contributionpolicy/answer/7400114" target="_blank" rel="noopener noreferrer">Google review policy</a></p>'; }
         if ($c['show_map'] && $c['template']!=='embed') { foreach ($c['locations'] as $locid) { echo MapDisplay::render($locid,(int)$c['map_height']); } }
         if ($c['show_maps']) { foreach ($c['locations'] as $locid) { $loc=Locations::get($locid); $d=$loc?json_decode($loc['data'],true):[]; if (!empty($d['maps_url'])) { ?><a class="grw-maps" data-event="maps" href="<?php echo esc_url($d['maps_url']); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html(sprintf(__('View %s on Google Maps', 'google-reviews-for-wordpress'),$loc['name'])); ?></a><?php } } }
         ?>
@@ -64,12 +69,12 @@ final class Renderer {
         <?php return ob_get_clean();
     }
     private static function card(array $r,array $c): void {
-        $google=$r['source_type']==='google_places'; if ($google) { $c['show_name']=true; $c['show_avatar']=true; $c['show_date']=true; }
+        $google=in_array($r['source_type'],['google_places','google_business'],true); if ($google) { $c['show_name']=true; $c['show_avatar']=true; $c['show_date']=true; }
         $licensed=$r['source_type']==='licensed';
         $text=$r['content']; $short=$c['expansion']!=='full' && $c['max_chars']>0 && mb_strlen($text)>(int)$c['max_chars'];
         $excerpt=$short?mb_substr($text,0,(int)$c['max_chars']).'…':$text;
         ?>
-        <article class="grw-card" data-review="<?php echo absint($r['id']); ?>" data-location="<?php echo absint($r['location_id']); ?>">
+        <article class="grw-card" data-review="<?php echo absint($r['id']); ?>" data-external="<?php echo esc_attr($r['external_id']??''); ?>" data-rating="<?php echo absint($r['rating']); ?>" data-location="<?php echo absint($r['location_id']); ?>">
         <?php if ($c['show_avatar']) { ?><div class="grw-avatar"><?php if ($r['avatar']) { ?><img loading="lazy" referrerpolicy="no-referrer" src="<?php echo esc_url($r['avatar']); ?>" alt="" width="<?php echo absint($c['avatar']); ?>" height="<?php echo absint($c['avatar']); ?>"><?php } ?><span><?php echo esc_html(mb_substr($r['reviewer'],0,1)); ?></span></div><?php } ?>
         <?php if ($c['show_name']) { ?><h3 class="grw-name"><?php if ($google && $r['author_url']) { ?><a href="<?php echo esc_url($r['author_url']); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html($r['reviewer']); ?></a><?php } else { echo esc_html($r['reviewer']); } ?></h3><?php } ?>
         <?php if ($c['show_date'] && $r['review_date']) { ?><time class="grw-date" datetime="<?php echo esc_attr(gmdate('c',strtotime($r['review_date'].' UTC'))); ?>"><?php echo esc_html(strtotime($r['review_date'].' UTC')<=time()?sprintf(__('%s ago','google-reviews-for-wordpress'),human_time_diff(strtotime($r['review_date'].' UTC'),time())):mysql2date(get_option('date_format'),$r['review_date'])); ?></time><?php } ?>

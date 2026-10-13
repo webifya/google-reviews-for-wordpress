@@ -22,7 +22,7 @@ v4(!str_contains(get_option('grw_places_private'),$configure['api_key']),'key ab
 v4(!str_contains(wp_json_encode(Places::status()),$configure['api_key']),'status never exposes key');
 v4(Places::status()['maximum']===5,'accurate five review capability');
 v4(Sources::capabilities('google_places')['storage']==='request_only','Places no stored reviews policy');
-v4(!Sources::capabilities('google_business')['public_display'],'owner dashboard separate from public review provider');
+v4(Sources::capabilities('google_business')['public_display_requires_opt_in']&&!Sources::capabilities('google_business')['daily'],'manager website display requires explicit opt-in and no permanent sync');
 v4(Sources::capabilities('manual')['storage']==='legacy','legacy testimonial provenance');
 v4(is_wp_error(Locations::save(['name'=>'Missing Place ID','provider'=>'google_places'])),'connection requires Place ID');
 $loc=Locations::save(['name'=>'SYNTHETIC Places fixture','place_id'=>'ChIJfixture','provider'=>'google_places','active'=>true]);

@@ -2,6 +2,8 @@
 if (!defined('WP_UNINSTALL_PLUGIN')) { exit; }
 global $wpdb;
 delete_option('grw_google_private');
+delete_option('grw_google_public_limit');
+delete_option('grw_google_public_usage');
 delete_option('grw_places_private');
 delete_option('grw_places_budget');
 foreach ($wpdb->get_col("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE 'grw\\_places\\_validation\\_%'") as $grw_option) { delete_option($grw_option); }

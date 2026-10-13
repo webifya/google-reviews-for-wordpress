@@ -3,8 +3,8 @@
 from pathlib import Path
 import zipfile,sys,json
 root=Path(__file__).resolve().parents[1]
-out=Path(sys.argv[1]) if len(sys.argv)>1 else root.parent/'google-reviews-for-wordpress-v1.5.0.zip'
-include=['google-reviews-for-wordpress.php','uninstall.php','readme.txt','LICENSE','includes','assets','languages']
+out=Path(sys.argv[1]) if len(sys.argv)>1 else root.parent/'google-reviews-for-wordpress-v1.6.0.zip'
+include=['google-reviews-for-wordpress.php','uninstall.php','readme.txt','LICENSE','API-SETUP.md','includes','assets','languages']
 worker=['collector.cjs','local.cjs','run.cjs','README.md','package.json','package-lock.json']
 files_worker=[root/'worker'/name for name in worker]
 for name in ['playwright','playwright-core']:

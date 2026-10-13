@@ -17,7 +17,8 @@ final class Locations {
         if (!isset(Sources::all()[$provider])) { return Security::error(__('Unknown provider.', 'google-reviews-for-wordpress')); }
         $data = ['provider'=>$provider,'active'=>!array_key_exists('active',$input)||!empty($input['active']),'frequency'=>in_array((int)($input['frequency']??259200),[0,43200,86400,172800,259200,432000,604800],true)?(int)($input['frequency']??259200):259200];
         foreach (['business_name','address','country','place_id','cid','google_parent'] as $key) { $data[$key] = sanitize_text_field($input[$key] ?? ''); }
-        if ($provider==='google_business' && (!preg_match('/^accounts\/\d+\/locations\/\d+$/',$data['google_parent']) || empty($input['identity_confirmed']))) { return Security::error('Select your owned business and confirm its identity'); }
+        if ($provider==='google_business' && (!preg_match('/^accounts\/\d+\/locations\/\d+$/',$data['google_parent']) || empty($input['identity_confirmed']))) { return Security::error('Select your managed business and confirm its identity'); }
+        if ($provider==='google_business') { $data['google_public']=filter_var($input['google_public']??false,FILTER_VALIDATE_BOOLEAN); }
         if ($provider==='google_scraper') {
             $data['scraper_enabled']=!empty($input['scraper_enabled']);
             if (!$data['place_id'] || !$data['scraper_enabled']) { return Security::error('Browser collection requires a Place ID and explicit experimental collection opt-in.'); }
