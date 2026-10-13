@@ -5,15 +5,15 @@ on:
   workflow_dispatch:
     inputs:
       browser_scope:
-        description: Browser checks to run (collector uses previous unchanged regression results)
+        description: Checks to run (browsers skips unchanged PHP compatibility jobs)
         type: choice
-        options: [full, collector]
+        options: [full, browsers, collector]
         default: full
 permissions:
   contents: read
 jobs:
   integration:
-    if: inputs.browser_scope != 'collector'
+    if: inputs.browser_scope != 'collector' && inputs.browser_scope != 'browsers'
     runs-on: ubuntu-latest
     strategy:
       matrix:
