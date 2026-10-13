@@ -5,7 +5,7 @@ use Webifya\GRW\{Project,GoogleBusiness,Locations,Widgets,Renderer,Admin,Install
 wp_set_current_user(1);global $wpdb;$n=0;
 function menjar($ok,$label){global $n;if(!$ok)throw new RuntimeException($label);echo "PASS: $label\n";$n++;}
 $snapshot=json_decode(file_get_contents(getenv('GRW_SNAPSHOT')),true);
-menjar(GRW_VERSION==='1.7.0-rc.1','dedicated package version active');
+menjar(GRW_VERSION==='1.7.1-rc.1','dedicated package version active');
 foreach($snapshot['rows'] as $name=>$old)menjar($wpdb->get_results("SELECT * FROM {$wpdb->prefix}grw_$name ORDER BY id",ARRAY_A)===$old,'upgrade retains all '.$name.' records');
 menjar(get_option('grw_google_private')===$snapshot['google'],'saved Google authorization preserved byte for byte');menjar(get_option('grw_settings')===$snapshot['settings'],'historical settings retained');menjar(!wp_next_scheduled('grw_tick')&&!wp_next_scheduled('grw_browser_local'),'old sync and collector jobs stopped');
 Installer::activate();menjar(get_option('grw_google_private')===$snapshot['google'],'repeated migration preserves Google authorization');
@@ -35,3 +35,5 @@ try{
  $names=$wpdb->get_col("SELECT option_value FROM {$wpdb->options} WHERE option_name LIKE '_transient_grw_gbp_%'");menjar(!str_contains(implode('',$names),'SYNTHETIC Menjar Reviewer'),'temporary Google cache contains no plaintext review content');
 }finally{remove_filter('pre_http_request',$http,10);wp_set_current_user(1);}
 echo "Menjar project suite: $n synthetic assertions; live Google account not tested.\n";
+
+require __DIR__.'/google-diagnostics.php';

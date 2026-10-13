@@ -4,7 +4,7 @@ This plugin is dedicated to Menjar Financial, Place ID `ChIJy3bcVRzl9IgR5eOJcFC6
 
 ## Upgrade
 
-Upload `menjar-financial-reviews-v1.7.0.zip` and replace the existing Google Reviews for WordPress plugin. Keep the existing installation; do not uninstall. The plugin keeps the same folder, OAuth callback, encrypted credential option, locations and saved style IDs. Historical review and analytics tables are retained but are no longer displayed or collected. Previous scraper/sync jobs are disabled.
+Upload `menjar-financial-reviews-v1.7.1.zip` and replace the existing Google Reviews for WordPress plugin. Keep the existing installation; do not uninstall. The plugin keeps the same folder, OAuth callback, encrypted credential option, locations and saved style IDs. Historical review and analytics tables are retained but are no longer displayed or collected. Previous scraper/sync jobs are disabled.
 
 ## Connection
 
@@ -31,3 +31,11 @@ Publish `[menjar_reviews]`. Existing `[google_reviews_widget id="123"]` shortcod
 No Node.js, browser worker, Places key, analytics, maps, import tools or unrelated review sources are part of this package. Historical source/tests in Git are not shipped.
 
 References: [Google API prerequisites](https://developers.google.com/my-business/content/prereqs), [review pagination](https://developers.google.com/my-business/reference/rest/v4/accounts.locations.reviews/list), [content policies](https://developers.google.com/my-business/content/policies), [OAuth token expiry](https://developers.google.com/identity/protocols/oauth2#expiration).
+
+## Diagnosing Google access failures
+
+A successful Google sign-in and the “You manage this Business Profile” panel confirm account access, but do not prove Cloud project API approval. The plugin now shows the failed API, HTTP status and recognized Google reason without exposing raw responses or credentials.
+
+In the Cloud project that owns the saved OAuth client, check Account Management API, Business Information API and Google My Business API enablement. Google documents 0 requests/minute as unapproved and 300 as the usual approved quota. SERVICE_DISABLED means enable the named API; scope errors mean reconnect and grant business.manage; quota errors require checking approval and usage. An unspecified 403 cannot uniquely identify the cause: check enablement, quota, the connected Google account, profile verification and Workspace Business Profile access.
+
+Do not create another OAuth client or delete the existing connection just to enable an API. After fixing project configuration, click Check Menjar Financial connection again. Share only the diagnostic text if it still fails, never OAuth credentials or tokens.

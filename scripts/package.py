@@ -3,7 +3,7 @@
 from pathlib import Path
 import zipfile,sys
 root=Path(__file__).resolve().parents[1]
-out=Path(sys.argv[1]) if len(sys.argv)>1 else root.parent/'menjar-financial-reviews-v1.7.0.zip'
+out=Path(sys.argv[1]) if len(sys.argv)>1 else root.parent/'menjar-financial-reviews-v1.7.1.zip'
 files=['google-reviews-for-wordpress.php','uninstall.php','readme.txt','LICENSE','API-SETUP.md']
 files+=['includes/'+x+'.php' for x in ['Security','Cache','Installer','Locations','GoogleBusiness','Widgets','Project','Renderer','Admin','Plugin']]
 files+=['assets/'+x for x in ['admin.js','admin.css','frontend.js','frontend.css','block.js']]

@@ -4,7 +4,7 @@ Tags: reviews, carousel
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.7.0-rc.1
+Stable tag: 1.7.1-rc.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,5 +21,8 @@ Three screens only: Connection, Reviews and Style Setup. The server restricts bu
 5. See API-SETUP.md for private OAuth setup when needed.
 
 == Changelog ==
+= 1.7.1-rc.1 =
+Identify the failing Google API, HTTP status and safe error reason, with targeted enablement, quota and authorization guidance. Saved connections and styles are preserved.
+
 = 1.7.0-rc.1 =
 Dedicated Menjar Financial build. Removes scraper, worker libraries, analytics, maps, imports, unrelated providers and generic business/widget management from the active plugin. Stops previous scheduled jobs. Preserves authorization, old data and existing shortcode IDs.

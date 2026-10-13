@@ -71,9 +71,30 @@ final class GoogleBusiness {
         $r=wp_safe_remote_get($url,['headers'=>['Authorization'=>'Bearer '.$token],'timeout'=>15,'redirection'=>0,'limit_response_size'=>1024*1024]);
         if (is_wp_error($r)) { return new \WP_Error('google_network','Google API is unavailable. Existing authorized imports are preserved.'); }
         $status=wp_remote_retrieve_response_code($r); $data=json_decode(wp_remote_retrieve_body($r),true);
-        if ($status!==200 || !is_array($data) || isset($data['error'])) { if ($status===401) { $credentials=self::read(); $credentials['requires_attention']=true; self::write($credentials); self::cleanup(true); } return new \WP_Error($status===401?'google_reconnect':($status===429?'google_quota':'google_access'),'Google access failed. Check project approval, verified-business access, API enablement and quota.',['status'=>400]); }
+        if ($status!==200 || !is_array($data) || isset($data['error'])) { if ($status===401) { $credentials=self::read(); $credentials['requires_attention']=true; self::write($credentials); self::cleanup(true); } return self::api_error($p['host'],$status,$data); }
         $credentials=self::read(); $credentials['last_validation']=current_time('mysql'); $credentials['requires_attention']=false; self::write($credentials);
         return $data;
+    }
+    /** Report only allowlisted diagnostics, never raw Google messages, resource IDs or credentials. */
+    private static function api_error(string $host,int $status,$data): \WP_Error {
+        $apis=['mybusinessaccountmanagement.googleapis.com'=>'My Business Account Management API (listing managed accounts)','mybusinessbusinessinformation.googleapis.com'=>'My Business Business Information API (finding Menjar Financial)','mybusiness.googleapis.com'=>'Google My Business API (reading reviews)'];
+        $reasons=[]; $error=is_array($data)&&is_array($data['error']??null)?$data['error']:[];
+        foreach (is_array($error['details']??null)?$error['details']:[] as $detail) { if (is_array($detail)&&is_string($detail['reason']??null)) { $reasons[]=$detail['reason']; } }
+        foreach (is_array($error['errors']??null)?$error['errors']:[] as $detail) { if (is_array($detail)&&is_string($detail['reason']??null)) { $reasons[]=$detail['reason']; } }
+        $known=['SERVICE_DISABLED','API_DISABLED','accessNotConfigured','ACCESS_TOKEN_SCOPE_INSUFFICIENT','insufficientPermissions','RATE_LIMIT_EXCEEDED','QUOTA_EXCEEDED','rateLimitExceeded','quotaExceeded','dailyLimitExceeded','USER_PROJECT_DENIED','CONSUMER_INVALID'];
+        $reason=''; foreach ($reasons as $r) { if (in_array($r,$known,true)) { $reason=$r; break; } }
+        $code='google_access';
+        if ($status===401) { $code='google_reconnect'; $help='Google authorization is invalid or expired. Reconnect Google with the account that manages Menjar Financial.'; }
+        elseif (in_array($reason,['SERVICE_DISABLED','API_DISABLED','accessNotConfigured'],true)) { $help='Enable this API in the Google Cloud project that owns your saved OAuth client. If unavailable, check Business Profile API project approval.'; }
+        elseif (in_array($reason,['ACCESS_TOKEN_SCOPE_INSUFFICIENT','insufficientPermissions'],true)) { $help='Reconnect Google and approve Business Profile access (business.manage) with the account that manages Menjar Financial.'; }
+        elseif ($status===429 || in_array($reason,['RATE_LIMIT_EXCEEDED','QUOTA_EXCEEDED','rateLimitExceeded','quotaExceeded','dailyLimitExceeded'],true)) { $code='google_quota'; $help='Check this API quota in the OAuth client\'s Google Cloud project. A Business Profile quota of 0 requests/minute means the project is not approved. If your quota is positive, check usage and retry after the limit resets.'; }
+        elseif (in_array($reason,['USER_PROJECT_DENIED','CONSUMER_INVALID'],true)) { $help='Check that the saved OAuth client belongs to the approved Google Cloud project and that this project can use the API.'; }
+        elseif ($status===403) { $help='Google denied this API request. Check API enablement and quota in the OAuth client\'s Cloud project (0 requests/minute means unapproved). If enabled with positive quota, confirm the connected Google account manages the verified profile; Workspace users should also check Business Profile is enabled by their administrator.'; }
+        elseif ($status===404) { $help='Google could not find the managed resource. Recheck the Menjar Financial connection with the correct manager account.'; }
+        elseif ($status>=500) { $help='Google is temporarily unavailable. Retry later.'; }
+        elseif ($status===200) { $help='Google returned an unexpected response. Retry; if it persists, report this API name and HTTP status.'; }
+        else { $help='Google rejected the request. Report this API name and HTTP status so the plugin request can be checked.'; }
+        return new \WP_Error($code,($apis[$host]??'Google Business Profile API').' failed — HTTP '.$status.($reason?' · '.$reason:'').'. '.$help,['status'=>400,'google_http_status'=>$status,'google_api'=>$host,'google_reason'=>$reason]);
     }
     public static function accounts(?string $cursor=null) { return self::api('https://mybusinessaccountmanagement.googleapis.com/v1/accounts?pageSize=20'.($cursor?'&pageToken='.rawurlencode($cursor):'')); }
     public static function locations(string $account,?string $cursor=null) {

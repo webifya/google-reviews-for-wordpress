@@ -29,7 +29,7 @@ jobs:
       - name: Build project-only package
         run: |
           find includes -name '*.php' -print0 | xargs -0 -n1 php -l
-          python3 scripts/package.py /tmp/menjar-financial-reviews-v1.7.0.zip
+          python3 scripts/package.py /tmp/menjar-financial-reviews-v1.7.1.zip
       - name: Verify upgrade and fixed-project API behavior
         run: |
           curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp.phar
@@ -41,12 +41,12 @@ jobs:
           unzip -q /tmp/previous.zip -d /tmp/wordpress/wp-content/plugins
           GRW_WP_ROOT=/tmp/wordpress GRW_SNAPSHOT=/tmp/menjar-snapshot.json php tests/menjar-baseline.php
           rm -rf /tmp/wordpress/wp-content/plugins/google-reviews-for-wordpress
-          unzip -q /tmp/menjar-financial-reviews-v1.7.0.zip -d /tmp/wordpress/wp-content/plugins
+          unzip -q /tmp/menjar-financial-reviews-v1.7.1.zip -d /tmp/wordpress/wp-content/plugins
           GRW_WP_ROOT=/tmp/wordpress GRW_SNAPSHOT=/tmp/menjar-snapshot.json php tests/menjar.php
       - uses: actions/upload-artifact@v4
         with:
           name: menjar-php-${{ matrix.php }}-wp-${{ matrix.wordpress }}-${{ matrix.database }}
-          path: /tmp/menjar-financial-reviews-v1.7.0.zip
+          path: /tmp/menjar-financial-reviews-v1.7.1.zip
   browsers:
     runs-on: ubuntu-latest
     steps:
