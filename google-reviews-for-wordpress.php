@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: Google Reviews for WordPress
- * Description: Local review carousels, analytics and an experimental Google Maps browser collector with a bundled browser collector.
- * Version: 1.6.0-rc.1
+ * Plugin Name: Menjar Financial Reviews
+ * Description: Menjar Financial Google connection, live reviews and carousel style setup.
+ * Version: 1.7.0-rc.1
  * Requires at least: 6.4
  * Requires PHP: 8.1
  * Author: Webifya
@@ -12,8 +12,8 @@
 namespace Webifya\GRW;
 if (!defined('ABSPATH')) { exit; }
 define('GRW_FILE', __FILE__);
-define('GRW_VERSION', '1.6.0-rc.1');
-foreach (['Security','Cache','Installer','Locations','Reviews','Sources','LocalCollector','Scraper','GoogleBusiness','Places','Sync','Widgets','MapDisplay','Renderer','Analytics','Admin','Plugin'] as $class) { require_once __DIR__ . '/includes/' . $class . '.php'; }
+define('GRW_VERSION', '1.7.0-rc.1');
+foreach (['Security','Cache','Installer','Locations','GoogleBusiness','Widgets','Project','Renderer','Admin','Plugin'] as $class) { require_once __DIR__ . '/includes/' . $class . '.php'; }
 register_activation_hook(__FILE__, [Installer::class, 'activate']);
 register_deactivation_hook(__FILE__, [Installer::class, 'deactivate']);
 add_action('plugins_loaded', [Plugin::class, 'boot']);

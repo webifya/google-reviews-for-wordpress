@@ -80,7 +80,7 @@ final class Installer {
         update_option('grw_db_version', GRW_VERSION, false);
         add_option('grw_settings', ['analytics'=>true,'retention'=>90,'delete_data'=>false,'consent_required'=>true]);
         add_option('grw_onboarding', true);
-        if (!wp_next_scheduled('grw_tick')) { wp_schedule_event(time()+300, 'hourly', 'grw_tick'); }
+        wp_clear_scheduled_hook('grw_tick'); wp_clear_scheduled_hook('grw_browser_local');
     }
     public static function deactivate(): void { wp_clear_scheduled_hook('grw_tick'); wp_clear_scheduled_hook('grw_browser_local'); }
 }

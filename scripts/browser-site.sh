@@ -21,16 +21,10 @@ if(!is_blog_installed())wp_install('Sample site','grwtest','test@example.invalid
 update_option('home','http://127.0.0.1:8097');update_option('siteurl','http://127.0.0.1:8097');
 PHP
 php "$TASK_ROOT/setup.php"
+curl -fsSL https://github.com/webifya/google-reviews-for-wordpress/releases/download/v1.6.0-rc.1/google-reviews-for-wordpress-v1.6.0.zip -o "$TASK_ROOT/previous.zip"
+unzip -q "$TASK_ROOT/previous.zip" -d "$TASK_ROOT/wordpress/wp-content/plugins"
+GRW_WP_ROOT="$TASK_ROOT/wordpress" GRW_SNAPSHOT="$TASK_ROOT/snapshot.json" php tests/menjar-baseline.php
+rm -rf "$TASK_ROOT/wordpress/wp-content/plugins/google-reviews-for-wordpress"
 python3 scripts/package.py "$TASK_ROOT/plugin.zip"
 unzip -q "$TASK_ROOT/plugin.zip" -d "$TASK_ROOT/wordpress/wp-content/plugins"
-GRW_WP_ROOT="$TASK_ROOT/wordpress" php tests/integration.php
-GRW_WP_ROOT="$TASK_ROOT/wordpress" php tests/seed.php
-cp tests/preview.php "$TASK_ROOT/wordpress/grw-preview.php"
-
-mkdir -p "$TASK_ROOT/wordpress/wp-content/mu-plugins"
-cp tests/phase4-browser-fixture.php "$TASK_ROOT/wordpress/wp-content/mu-plugins/grw-phase4-fixture.php"
-GRW_WP_ROOT="$TASK_ROOT/wordpress" php tests/phase4-browser-seed.php
-cp tests/phase4-preview.php "$TASK_ROOT/wordpress/grw-phase4-preview.php"
-
-cp tests/phase6-browser-fixture.php "$TASK_ROOT/wordpress/wp-content/mu-plugins/grw-phase6-fixture.php"
-GRW_WP_ROOT="$TASK_ROOT/wordpress" php tests/phase6-browser-seed.php
+GRW_WP_ROOT="$TASK_ROOT/wordpress" GRW_SNAPSHOT="$TASK_ROOT/snapshot.json" php tests/menjar.php

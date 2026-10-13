@@ -47,7 +47,7 @@ final class Widgets {
         global $wpdb; $id=absint($in['id']??0); if ($id && !self::get($id)) { return Security::error('Widget not found',404); }
         if (!is_array($in['config']??[])) { return Security::error('Widget config must be an object'); }
         $name=sanitize_text_field($in['name']??''); if (!$name) { return Security::error('Widget name is required'); }
-        $config=self::sanitize($in['config']??[]); if ($config['template']!=='embed') { $selected=$config['locations']?:array_column(Locations::all(),'id'); $live=0; foreach ($selected as $locid) { $loc=Locations::get((int)$locid); $data=$loc?json_decode($loc['data'],true):[]; if (!empty($data['active'])&&($data['provider']??'')==='google_places') { $live++; } } if ($live>5) { return Security::error('Select at most five Google Places businesses per live widget. Create additional widgets for other locations.'); } } $row=['name'=>$name,'config'=>wp_json_encode($config)];
+        $config=Project::config($in['config']??[]); $row=['name'=>$name,'config'=>wp_json_encode($config)];
         $ok=$id?$wpdb->update($wpdb->prefix.'grw_widgets',$row,['id'=>$id]):$wpdb->insert($wpdb->prefix.'grw_widgets',$row);
         return $ok===false?Security::error('Could not save widget',500):($id ?: (int)$wpdb->insert_id);
     }

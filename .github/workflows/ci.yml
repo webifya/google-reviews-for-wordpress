@@ -1,19 +1,9 @@
-name: Plugin checks
-on:
-  push:
-  pull_request:
-  workflow_dispatch:
-    inputs:
-      browser_scope:
-        description: Checks to run (browsers skips unchanged PHP compatibility jobs)
-        type: choice
-        options: [full, browsers, collector]
-        default: full
+name: Menjar project checks
+on: [push, pull_request, workflow_dispatch]
 permissions:
   contents: read
 jobs:
   integration:
-    if: inputs.browser_scope != 'collector' && inputs.browser_scope != 'browsers'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -36,50 +26,27 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: mysqli, mbstring
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Syntax and package checks
+      - name: Build project-only package
         run: |
-          find . -name '*.php' -print0 | xargs -0 -n1 php -l
-          npm run check
-          npm ci
-          python3 scripts/package.py /tmp/google-reviews-for-wordpress-v1.6.0.zip
-      - name: Install clean WordPress from package
+          find includes -name '*.php' -print0 | xargs -0 -n1 php -l
+          python3 scripts/package.py /tmp/menjar-financial-reviews-v1.7.0.zip
+      - name: Verify upgrade and fixed-project API behavior
         run: |
           curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp.phar
           mkdir /tmp/wordpress
           php /tmp/wp.phar core download --path=/tmp/wordpress --version=${{ matrix.wordpress }}
           php /tmp/wp.phar config create --path=/tmp/wordpress --dbname=grw_test --dbuser=root --dbpass=test --dbhost=127.0.0.1:3306
-          php /tmp/wp.phar core install --path=/tmp/wordpress --url=http://127.0.0.1:8097 --title=Test --admin_user=grwtest --admin_password=local-test-password --admin_email=test@example.invalid
-          unzip /tmp/google-reviews-for-wordpress-v1.6.0.zip -d /tmp/wordpress/wp-content/plugins
-          GRW_WP_ROOT=/tmp/wordpress php tests/integration.php
-          GRW_WP_ROOT=/tmp/wordpress php tests/phase3.php
-          GRW_WP_ROOT=/tmp/wordpress php tests/phase4.php
-          GRW_WP_ROOT=/tmp/wordpress php tests/phase5.php
-          GRW_WP_ROOT=/tmp/wordpress php tests/phase6.php
-          GRW_WP_ROOT=/tmp/wordpress php tests/phase7.php
-          GRW_WP_ROOT=/tmp/wordpress php tests/manager.php
-          GRW_WP_ROOT=/tmp/wordpress php tests/scraper.php | tee /tmp/grw-scraper-tests.log
-          grep -q "browser collector assertions passed" /tmp/grw-scraper-tests.log
-          curl -fsSL https://github.com/webifya/google-reviews-for-wordpress/releases/download/v1.4.0-rc.1/google-reviews-for-wordpress-v1.4.0.zip -o /tmp/grw-previous.zip
-          unzip -oq /tmp/grw-previous.zip -d /tmp/wordpress/wp-content/plugins
-          php /tmp/wp.phar eval 'global $wpdb; foreach (["locations","reviews","widgets","analytics","logs"] as $table) { $wpdb->query("DROP TABLE IF EXISTS ".$wpdb->prefix."grw_".$table); } delete_option("grw_db_version");' --path=/tmp/wordpress --skip-plugins --skip-themes
-          GRW_WP_ROOT=/tmp/wordpress GRW_UPGRADE_MODE=seed GRW_SNAPSHOT=/tmp/grw-upgrade.json php tests/upgrade.php
-          unzip -oq /tmp/google-reviews-for-wordpress-v1.6.0.zip -d /tmp/wordpress/wp-content/plugins
-          GRW_WP_ROOT=/tmp/wordpress GRW_UPGRADE_MODE=verify GRW_SNAPSHOT=/tmp/grw-upgrade.json php tests/upgrade.php
-          curl -fsSL https://github.com/webifya/google-reviews-for-wordpress/releases/download/v1.5.0-rc.2/google-reviews-for-wordpress-v1.5.0.zip -o /tmp/grw-latest-previous.zip
-          unzip -oq /tmp/grw-latest-previous.zip -d /tmp/wordpress/wp-content/plugins
-          GRW_WP_ROOT=/tmp/wordpress GRW_UPGRADE_MODE=seed GRW_SNAPSHOT=/tmp/grw-latest-upgrade.json php tests/upgrade.php
-          unzip -oq /tmp/google-reviews-for-wordpress-v1.6.0.zip -d /tmp/wordpress/wp-content/plugins
-          GRW_WP_ROOT=/tmp/wordpress GRW_UPGRADE_MODE=verify GRW_SNAPSHOT=/tmp/grw-latest-upgrade.json php tests/upgrade.php
-          GRW_WP_ROOT=/tmp/wordpress php tests/benchmark.php > /tmp/benchmark.json
+          php /tmp/wp.phar core install --path=/tmp/wordpress --url=http://127.0.0.1:8097 --title=Test --admin_user=grwtest --admin_password=local-test-password-change --admin_email=test@example.invalid
+          curl -fsSL https://github.com/webifya/google-reviews-for-wordpress/releases/download/v1.6.0-rc.1/google-reviews-for-wordpress-v1.6.0.zip -o /tmp/previous.zip
+          unzip -q /tmp/previous.zip -d /tmp/wordpress/wp-content/plugins
+          GRW_WP_ROOT=/tmp/wordpress GRW_SNAPSHOT=/tmp/menjar-snapshot.json php tests/menjar-baseline.php
+          rm -rf /tmp/wordpress/wp-content/plugins/google-reviews-for-wordpress
+          unzip -q /tmp/menjar-financial-reviews-v1.7.0.zip -d /tmp/wordpress/wp-content/plugins
+          GRW_WP_ROOT=/tmp/wordpress GRW_SNAPSHOT=/tmp/menjar-snapshot.json php tests/menjar.php
       - uses: actions/upload-artifact@v4
         with:
-          name: plugin-php-${{ matrix.php }}-wp-${{ matrix.wordpress }}-${{ matrix.database }}
-          path: |
-            /tmp/google-reviews-for-wordpress-v1.6.0.zip
-            /tmp/benchmark.json
+          name: menjar-php-${{ matrix.php }}-wp-${{ matrix.wordpress }}-${{ matrix.database }}
+          path: /tmp/menjar-financial-reviews-v1.7.0.zip
   browsers:
     runs-on: ubuntu-latest
     steps:
@@ -91,55 +58,20 @@ jobs:
         with:
           php-version: '8.4'
           extensions: pdo_sqlite, mbstring
-      - name: Install browser engines
-        run: |
-          npm install
+      - run: |
+          npm ci
+          npm run check
           npx playwright install --with-deps chromium firefox webkit
-      - name: Prepare isolated WordPress SQLite site
-        run: bash scripts/browser-site.sh
-      - name: Bundled collector process tests
-        run: |
-          GRW_WP_ROOT=/tmp/grw-browser/wordpress GRW_NODE=$(command -v node) GRW_BROWSER_PATH=$(node -e "process.stdout.write(require('playwright').chromium.executablePath())") php tests/combined.php | tee /tmp/grw-combined-tests.log
-          grep -q "combined plugin assertions passed" /tmp/grw-combined-tests.log
-      - name: Manager API transport fixtures
-        run: GRW_WP_ROOT=/tmp/grw-browser/wordpress php tests/manager.php
-      - name: Browser regression suite
-        if: inputs.browser_scope != 'collector'
+      - run: bash scripts/browser-site.sh
+      - name: Check the three project screens and live carousel
         run: |
           php -S 127.0.0.1:8097 -t /tmp/grw-browser/wordpress >/tmp/grw-server.log 2>&1 &
           sleep 2
-          GRW_PREVIEW_URL=http://127.0.0.1:8097/grw-preview.php GRW_BROWSER=chromium npm run test:browser
-          GRW_PREVIEW_URL=http://127.0.0.1:8097/grw-preview.php GRW_BROWSER=firefox npm run test:browser
-          GRW_PREVIEW_URL=http://127.0.0.1:8097/grw-preview.php GRW_BROWSER=webkit npm run test:browser
-          GRW_BROWSER=chromium node tests/phase4-browser.cjs
-          GRW_BROWSER=firefox node tests/phase4-browser.cjs
-          GRW_BROWSER=webkit node tests/phase4-browser.cjs
-          GRW_BROWSER=chromium node tests/phase6-browser.cjs
-          GRW_BROWSER=firefox node tests/phase6-browser.cjs
-          GRW_BROWSER=webkit node tests/phase6-browser.cjs
-          GRW_BROWSER=chromium node tests/phase7-browser.cjs
-          GRW_BROWSER=firefox node tests/phase7-browser.cjs
-          GRW_BROWSER=webkit node tests/phase7-browser.cjs
-          GRW_BROWSER=chromium node tests/manager-browser.cjs
-          GRW_BROWSER=firefox node tests/manager-browser.cjs
-          GRW_BROWSER=webkit node tests/manager-browser.cjs
-          node tests/scraper-worker.cjs
-          node tests/scraper-browser.cjs
-      - name: Affected collector browser checks
-        if: inputs.browser_scope == 'collector'
-        run: |
-          php -S 127.0.0.1:8097 -t /tmp/grw-browser/wordpress >/tmp/grw-server.log 2>&1 &
-          sleep 2
-          GRW_BROWSER=chromium node tests/phase7-browser.cjs
-          GRW_BROWSER=firefox node tests/phase7-browser.cjs
-          GRW_BROWSER=webkit node tests/phase7-browser.cjs
-          GRW_BROWSER=chromium node tests/manager-browser.cjs
-          GRW_BROWSER=firefox node tests/manager-browser.cjs
-          GRW_BROWSER=webkit node tests/manager-browser.cjs
-          node tests/scraper-worker.cjs
-          node tests/scraper-browser.cjs
+          GRW_BROWSER=chromium node tests/menjar-browser.cjs
+          GRW_BROWSER=firefox node tests/menjar-browser.cjs
+          GRW_BROWSER=webkit node tests/menjar-browser.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: browser-screenshots
-          path: test-results/
+          name: menjar-browser-results
+          path: test-results/menjar/

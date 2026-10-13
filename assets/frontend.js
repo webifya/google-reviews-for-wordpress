@@ -10,17 +10,7 @@ function initialize(root){
  const observers=[];const watch=(observer,target)=>{observer.observe(target);observers.push(observer)};
  instances.set(root,()=>{dead=true;cleanups.forEach(fn=>fn());timers.forEach(clearTimeout);observers.forEach(o=>o.disconnect());instances.delete(root)});
  on(root,'error',e=>{if(e.target.tagName==='IMG')e.target.remove()},true);
- let queue=[],flushTimer=null,visible=false,visibilityTimer=null,observed=false,token=null,consent=!c.consent||window.grwAnalyticsConsent===true;
- const permitted=()=>c.track&&consent&&!navigator.globalPrivacyControl&&navigator.doNotTrack!=='1';
- const session=()=>{if(token)return token;try{token=sessionStorage.getItem('grw-session')}catch{}if(!token){token=Array.from(crypto.getRandomValues(new Uint8Array(16)),n=>n.toString(16).padStart(2,'0')).join('');try{sessionStorage.setItem('grw-session',token)}catch{}}return token};
- const flush=()=>{flushTimer=null;if(!permitted()){queue=[];return}if(!queue.length)return;const events=queue.splice(0,30);fetch(c.endpoint,{method:'POST',credentials:'same-origin',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({events,session:session(),consent})}).catch(()=>{});if(queue.length)flushTimer=later(flush,250)};
- const event=type=>{if(!permitted())return;if(queue.length<120)queue.push({widget:c.widget,event:type});if(!flushTimer)flushTimer=later(flush,1000)};
- const impression=()=>{if(observed||!permitted()||document.hidden)return;observed=true;session();try{const key='grw-view-'+c.widget;if(sessionStorage.getItem(key))return;sessionStorage.setItem(key,'1')}catch{}event('impression');event('unique')};
- if(c.track){
-  const measure=()=>{const r=root.getBoundingClientRect(),reachable=Math.min(r.height,innerHeight);visible=r.width>0&&Math.min(r.bottom,innerHeight)-Math.max(r.top,0)>=reachable*.3;clearTimeout(visibilityTimer);if(visible&&!document.hidden)visibilityTimer=later(impression,1000)};
-  watch(new IntersectionObserver(measure,{threshold:[0,.01,.1,.3,.5,1]}),root);on(window,'scroll',measure,{passive:true});on(window,'resize',measure);on(document,'visibilitychange',measure);
-  on(window,'grw:consent',e=>{consent=e.detail===true;if(!consent)queue=[];measure()});on(window,'pagehide',flush);
- }
+ const event=()=>{};
  const refreshReadMore=()=>root.querySelectorAll('.grw-more').forEach(b=>{const t=b.parentElement.querySelector('.grw-content');if(b.getAttribute('aria-expanded')!=='true')b.hidden=t.dataset.full===t.dataset.short&&t.scrollHeight<=t.clientHeight+1});
  watch(new ResizeObserver(refreshReadMore),root);refreshReadMore();
  on(root,'click',e=>{
